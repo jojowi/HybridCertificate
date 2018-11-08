@@ -52,21 +52,30 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return signer.getSignature();
     }
 
+    public byte[] getBaseCert() throws IOException {
+        try {
+            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
+        } catch (CertIOException e) {
+            e.printStackTrace();
+        }
+        X509CertificateHolder cert = build(new NullContentSigner());
+        TBSCertificate tbs = cert.toASN1Structure().getTBSCertificate();
+        System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));
+        return tbs.toASN1Primitive().getEncoded();
+    }
+
     public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary) {
         try {
             addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
         } catch (CertIOException e) {
             e.printStackTrace();
         }
-        X509CertificateHolder cert = build(primary);
+        X509CertificateHolder cert = build(new NullContentSigner());
         TBSCertificate tbs = cert.toASN1Structure().getTBSCertificate();
         try {
             System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
             byte[] signature = secondary.generateSignature(tbs.toASN1Primitive().getEncoded());
+            System.out.println(Arrays.toString(signature));
             addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
         } catch (IOException e) {
             e.printStackTrace();
