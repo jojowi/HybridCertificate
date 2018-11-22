@@ -21,7 +21,7 @@ public class HybridSignature extends ASN1Object {
     }
 
     public byte[] getSignature() {
-        System.out.println(Arrays.toString(signature));
+        //System.out.println(Arrays.toString(signature));
         return signature;
     }
 

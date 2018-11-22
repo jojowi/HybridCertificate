@@ -1,9 +1,7 @@
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.HybridKey;
-import org.bouncycastle.asn1.x509.HybridSignature;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -25,10 +23,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
+import java.security.cert.*;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -49,13 +46,13 @@ public class Main {
 //        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
 //        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
 //
-//        AsymmetricCipherKeyPair primary = readRSAKeyPair("EE");
-//        AsymmetricCipherKeyPair primarySigner = readRSAKeyPair("CA2");
-//        AsymmetricCipherKeyPair secondary = readQTESLAKeyPair("EE");
-//        AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair("CA2");
+        AsymmetricCipherKeyPair primary = readRSAKeyPair("EE");
+        AsymmetricCipherKeyPair primarySigner = readRSAKeyPair("CA2");
+        AsymmetricCipherKeyPair secondary = readQTESLAKeyPair("EE");
+        AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair("CA2");
 //
-//        X509Certificate cert = createCertificate("EE", "CA2", primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
-//        saveCertificateAsPEM(cert, "CA2-EE");
+        X509Certificate cert = createCertificate("EE", "CA2", primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
+        saveCertificateAsPEM(cert, "CA2-EE");
 
         X509Certificate ca1 = readCertificate("CA1");
         X509Certificate ca2 = readCertificate("CA1-CA2");
@@ -63,11 +60,45 @@ public class Main {
 
         QTESLASigner verify = new QTESLASigner();
         verify.init(false, HybridKey.fromCert(ca2).getKey());
-        System.out.println(verify.verifySignature(extractBaseCert(ee), HybridSignature.fromCert(ee).getSignature()));
+        byte[] base = extractBaseCert(ee);
+        System.out.println(Arrays.toString(base));
+        System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
     }
 
     private static byte[] extractBaseCert(X509Certificate cert) throws IOException {
-        HybridCertificateBuilder builder = new HybridCertificateBuilder(
+        ASN1Sequence tbs = null;
+        ASN1EncodableVector newTbs = new ASN1EncodableVector();
+        try {
+            tbs = (ASN1Sequence) ASN1Sequence.fromByteArray(cert.getTBSCertificate());
+        } catch (CertificateEncodingException e) {
+            e.printStackTrace();
+        }
+        for (ASN1Encodable a : tbs.toArray()) {
+            if (a instanceof ASN1TaggedObject) {
+                ASN1TaggedObject tagged = (ASN1TaggedObject) a;
+                if (tagged.isExplicit() && tagged.getTagNo() == 3) {
+                    ASN1Sequence extensions = (ASN1Sequence) tagged.getObject();
+                    ASN1EncodableVector newextensions = new ASN1EncodableVector();
+                    for (ASN1Encodable b : extensions.toArray()) {
+                        ASN1Sequence extension = (ASN1Sequence) b;
+                        ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) extension.getObjectAt(0);
+
+                        if (!oid.getId().equals(HybridSignature.OID)) {
+                            newextensions.add(extension);
+                        }
+                    }
+                    DERTaggedObject newTagged = new DERTaggedObject(true, 3, new DERSequence(newextensions));
+                    newTbs.add(newTagged);
+                } else {
+                    newTbs.add(tagged);
+                }
+            } else {
+                newTbs.add(a);
+            }
+        }
+        TBSCertificate base = TBSCertificate.getInstance(new DERSequence(newTbs));
+        return base.getEncoded();
+        /*HybridCertificateBuilder builder = new HybridCertificateBuilder(
                 X500Name.getInstance(cert.getIssuerX500Principal().getEncoded()),
                 cert.getSerialNumber(),
                 cert.getNotBefore(),
@@ -82,7 +113,7 @@ public class Main {
             if (!oid.equals(HybridKey.OID) && !oid.equals(HybridSignature.OID))
                 builder.addExtension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid));
         }
-        return builder.getBaseCert();
+        return builder.getBaseCert();*/
     }
 
     private static X509Certificate readCertificate(String name) {
