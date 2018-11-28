@@ -1,28 +1,30 @@
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.util.ASN1Dump;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
+import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtils;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
+import org.bouncycastle.org.bouncycastle.cert.HybridCertUtils;
 import org.bouncycastle.pqc.crypto.MessageSigner;
-import org.bouncycastle.pqc.crypto.qtesla.QTESLASigner;
+import org.bouncycastle.pqc.crypto.qtesla.*;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
+import java.security.*;
 import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.util.Arrays;
@@ -30,27 +32,23 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-import static org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtils.createRSAKeyPair;
-import static org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtils.readRSAKeyPair;
-import static org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils.createQTESLAKeyPair;
-import static org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils.readQTESLAKeyPair;
 
 public class Main {
-    public static void main(String[]args) throws NoSuchAlgorithmException, IOException, OperatorCreationException, CertificateException, InvalidKeyException, NoSuchProviderException, SignatureException {
+    public static void main(String[]args) throws IOException {
 
 
-//        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
-//        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
-//        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
-//        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
-//        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
-//        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
-//
+        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
+        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
+        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
+        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
+        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
+        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
+
         AsymmetricCipherKeyPair primary = readRSAKeyPair("EE");
         AsymmetricCipherKeyPair primarySigner = readRSAKeyPair("CA2");
         AsymmetricCipherKeyPair secondary = readQTESLAKeyPair("EE");
         AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair("CA2");
-//
+
         X509Certificate cert = createCertificate("EE", "CA2", primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
         saveCertificateAsPEM(cert, "CA2-EE");
 
@@ -60,60 +58,119 @@ public class Main {
 
         QTESLASigner verify = new QTESLASigner();
         verify.init(false, HybridKey.fromCert(ca2).getKey());
-        byte[] base = extractBaseCert(ee);
+        byte[] base = HybridCertUtils.extractBaseCert(ee);
         System.out.println(Arrays.toString(base));
         System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
     }
 
-    private static byte[] extractBaseCert(X509Certificate cert) throws IOException {
-        ASN1Sequence tbs = null;
-        ASN1EncodableVector newTbs = new ASN1EncodableVector();
+    private static AsymmetricCipherKeyPair createRSAKeyPair(String name) {
+        RSAKeyPairGenerator gen = new RSAKeyPairGenerator();
+        gen.init(new RSAKeyGenerationParameters(BigInteger.valueOf(0x1001), new SecureRandom(), 4096, 25));
+        AsymmetricCipherKeyPair pair = gen.generateKeyPair();
+        KeyPair keys = RSAUtils.toKeyPair(pair);
+        saveRSAKeyPair(name + "_public", keys.getPublic());
+        saveRSAKeyPair(name + "_private", keys.getPrivate());
+        return pair;
+    }
+
+    private static AsymmetricCipherKeyPair readRSAKeyPair(String name) {
+        return RSAUtils.fromKeyPair(new KeyPair(readPublicKeyFromPEMFile(name + "_public"), readPrivateKeyFromPEMFile(name + "_private")));
+    }
+
+    private static PublicKey readPublicKeyFromPEMFile(String name) {
         try {
-            tbs = (ASN1Sequence) ASN1Sequence.fromByteArray(cert.getTBSCertificate());
-        } catch (CertificateEncodingException e) {
+            FileInputStream fis = new FileInputStream(name + ".pem");
+
+            PublicKey pk = null;
+            BufferedReader pemReader = new BufferedReader(new InputStreamReader(fis));
+            PEMParser pemParser = new PEMParser(pemReader);
+
+            try {
+                Object parsedObj = pemParser.readObject();
+                if (parsedObj instanceof SubjectPublicKeyInfo) {
+                    pk = new JcaPEMKeyConverter().getPublicKey((SubjectPublicKeyInfo) parsedObj);
+
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                // System.out.println(ex);
+            }
+            pemParser.close();
+            return pk;
+        } catch (Exception e) {
+            e.printStackTrace();
+            // System.out.println(e);
+            return null;
+        }
+    }
+
+    private static PrivateKey readPrivateKeyFromPEMFile(String name) {
+        try {
+            FileInputStream fis = new FileInputStream(name + ".pem");
+
+            PrivateKey pk = null;
+            BufferedReader pemReader = new BufferedReader(new InputStreamReader(fis));
+            PEMParser pemParser = new PEMParser(pemReader);
+
+            try {
+                Object parsedObj = pemParser.readObject();
+                if (parsedObj instanceof PEMKeyPair) {
+                    pk = new JcaPEMKeyConverter().getKeyPair((PEMKeyPair) parsedObj).getPrivate();
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            pemParser.close();
+
+            return pk;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static void saveRSAKeyPair(String Filename, Key key) {
+        saveToFile(Filename + ".pem", toPEM(key));
+    }
+
+    private static AsymmetricCipherKeyPair createQTESLAKeyPair(String name) {
+        QTESLAKeyPairGenerator gen = new QTESLAKeyPairGenerator();
+        try {
+            gen.init(new QTESLAKeyGenerationParameters(4, SecureRandom.getInstanceStrong()));
+        } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        for (ASN1Encodable a : tbs.toArray()) {
-            if (a instanceof ASN1TaggedObject) {
-                ASN1TaggedObject tagged = (ASN1TaggedObject) a;
-                if (tagged.isExplicit() && tagged.getTagNo() == 3) {
-                    ASN1Sequence extensions = (ASN1Sequence) tagged.getObject();
-                    ASN1EncodableVector newextensions = new ASN1EncodableVector();
-                    for (ASN1Encodable b : extensions.toArray()) {
-                        ASN1Sequence extension = (ASN1Sequence) b;
-                        ASN1ObjectIdentifier oid = (ASN1ObjectIdentifier) extension.getObjectAt(0);
+        AsymmetricCipherKeyPair pair = gen.generateKeyPair();
+        try {
+            File file = new File(name + "_public.key");
+            FileOutputStream out = new FileOutputStream(file);
+            out.write(QTESLAUtils.toASN1Primitive((QTESLAPublicKeyParameters) pair.getPublic()).getEncoded());
+            out.close();
+            file = new File(name + "_private.key");
+            out = new FileOutputStream(file);
+            out.write(QTESLAUtils.toASN1Primitive((QTESLAPrivateKeyParameters) pair.getPrivate()).getEncoded());
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return pair;
+    }
 
-                        if (!oid.getId().equals(HybridSignature.OID)) {
-                            newextensions.add(extension);
-                        }
-                    }
-                    DERTaggedObject newTagged = new DERTaggedObject(true, 3, new DERSequence(newextensions));
-                    newTbs.add(newTagged);
-                } else {
-                    newTbs.add(tagged);
-                }
-            } else {
-                newTbs.add(a);
-            }
+    private static AsymmetricCipherKeyPair readQTESLAKeyPair(String name) {
+        try {
+            File file = new File(name + "_public.key");
+            FileInputStream in = new FileInputStream(file);
+            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes());
+            in.close();
+            file = new File(name + "_private.key");
+            in = new FileInputStream(file);
+            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes());
+            in.close();
+            return new AsymmetricCipherKeyPair(pub, priv);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        TBSCertificate base = TBSCertificate.getInstance(new DERSequence(newTbs));
-        return base.getEncoded();
-        /*HybridCertificateBuilder builder = new HybridCertificateBuilder(
-                X500Name.getInstance(cert.getIssuerX500Principal().getEncoded()),
-                cert.getSerialNumber(),
-                cert.getNotBefore(),
-                cert.getNotAfter(),
-                X500Name.getInstance(cert.getSubjectX500Principal().getEncoded()),
-                SubjectPublicKeyInfo.getInstance(cert.getPublicKey().getEncoded()),
-                HybridKey.fromCert(cert).getKey());
-        for (String oid : cert.getCriticalExtensionOIDs()) {
-            builder.addExtension(new ASN1ObjectIdentifier(oid), true, cert.getExtensionValue(oid));
-        }
-        for (String oid : cert.getNonCriticalExtensionOIDs()) {
-            if (!oid.equals(HybridKey.OID) && !oid.equals(HybridSignature.OID))
-                builder.addExtension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid));
-        }
-        return builder.getBaseCert();*/
+        return null;
     }
 
     private static X509Certificate readCertificate(String name) {
@@ -124,8 +181,7 @@ public class Main {
             Certificate c = cf.generateCertificate(bis);
             bis.close();
             fis.close();
-            X509Certificate cert = (X509Certificate) c;
-            return  cert;
+            return (X509Certificate) c;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -174,7 +230,7 @@ public class Main {
         }
     }
 
-    public static void saveToFile(String filename, String content) {
+    private static void saveToFile(String filename, String content) {
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(new File(filename)));
             writer.write(content);
@@ -184,7 +240,7 @@ public class Main {
         }
     }
 
-    public static String toPEM(Object obj) {
+    private static String toPEM(Object obj) {
         StringWriter sw = new StringWriter();
         JcaPEMWriter pem = new JcaPEMWriter(sw);
         try {
@@ -196,7 +252,7 @@ public class Main {
         return sw.toString();
     }
 
-    public static void saveCertificateAsPEM(X509Certificate cert, String certName) {
+    private static void saveCertificateAsPEM(X509Certificate cert, String certName) {
         saveToFile(certName + ".crt", toPEM(cert));
     }
 

@@ -28,13 +28,7 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
     }
 
     public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary) {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
-        X509CertificateHolder cert = build(primary);
-        TBSCertificate tbs = cert.toASN1Structure().getTBSCertificate();
+        TBSCertificate tbs = prepareForHybrid(primary);
         try {
             byte[] signature = generateSig(secondary, tbs);
             addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
@@ -52,26 +46,18 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return signer.getSignature();
     }
 
-    public byte[] getBaseCert() throws IOException {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
-        X509CertificateHolder cert = build(new NullContentSigner());
-        TBSCertificate tbs = cert.toASN1Structure().getTBSCertificate();
-        //System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));
-        return tbs.toASN1Primitive().getEncoded();
-    }
-
-    public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary) {
+    private TBSCertificate prepareForHybrid(ContentSigner primary) {
         try {
             addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
         } catch (CertIOException e) {
             e.printStackTrace();
         }
         X509CertificateHolder cert = build(primary);
-        TBSCertificate tbs = cert.toASN1Structure().getTBSCertificate();
+        return cert.toASN1Structure().getTBSCertificate();
+    }
+
+    public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary) {
+        TBSCertificate tbs = prepareForHybrid(primary);
         try {
             System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));
             byte[] signature = secondary.generateSignature(tbs.toASN1Primitive().getEncoded());
