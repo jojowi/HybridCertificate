@@ -18,7 +18,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
-import org.bouncycastle.org.bouncycastle.cert.HybridCertUtils;
+import org.bouncycastle.cert.HybridCertUtils;
 import org.bouncycastle.pqc.crypto.MessageSigner;
 import org.bouncycastle.pqc.crypto.qtesla.*;
 
@@ -34,15 +34,15 @@ import java.util.GregorianCalendar;
 
 
 public class Main {
-    public static void main(String[]args) throws IOException {
+    public static void main(String[]args) throws IOException, CertificateEncodingException {
 
 
-        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
-        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
-        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
-        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
-        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
-        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
+//        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
+//        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
+//        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
+//        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
+//        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
+//        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
 
         AsymmetricCipherKeyPair primary = readRSAKeyPair("EE");
         AsymmetricCipherKeyPair primarySigner = readRSAKeyPair("CA2");
@@ -60,6 +60,7 @@ public class Main {
         verify.init(false, HybridKey.fromCert(ca2).getKey());
         byte[] base = HybridCertUtils.extractBaseCert(ee);
         System.out.println(Arrays.toString(base));
+        System.out.println(Arrays.toString(HybridSignature.fromCert(ee).getSignature()));
         System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
     }
 

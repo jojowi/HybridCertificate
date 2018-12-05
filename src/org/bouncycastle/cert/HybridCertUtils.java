@@ -1,10 +1,11 @@
-package org.bouncycastle.org.bouncycastle.cert;
+package org.bouncycastle.cert;
 
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.HybridSignature;
 import org.bouncycastle.asn1.x509.TBSCertificate;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
@@ -32,7 +33,18 @@ public class HybridCertUtils {
                             newextensions.add(extension);
                         }
                     }
-                    DERTaggedObject newTagged = new DERTaggedObject(true, 3, new DERSequence(newextensions));
+                    ASN1Sequence seq = null;
+                    try {
+                        seq = extensions.getClass().getConstructor(ASN1EncodableVector.class).newInstance(newextensions);
+                    } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                    ASN1TaggedObject newTagged = null;
+                    try {
+                        newTagged = tagged.getClass().getConstructor(boolean.class, int.class, ASN1Encodable.class).newInstance(true, 3, seq);
+                    } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
                     newTbs.add(newTagged);
                 } else {
                     newTbs.add(tagged);
@@ -41,23 +53,12 @@ public class HybridCertUtils {
                 newTbs.add(a);
             }
         }
-        TBSCertificate base = TBSCertificate.getInstance(new DERSequence(newTbs));
+        TBSCertificate base = null;
+        try {
+            base = TBSCertificate.getInstance(tbs.getClass().getConstructor(ASN1EncodableVector.class).newInstance(newTbs));
+        } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
         return base.getEncoded();
-        /*HybridCertificateBuilder builder = new HybridCertificateBuilder(
-                X500Name.getInstance(cert.getIssuerX500Principal().getEncoded()),
-                cert.getSerialNumber(),
-                cert.getNotBefore(),
-                cert.getNotAfter(),
-                X500Name.getInstance(cert.getSubjectX500Principal().getEncoded()),
-                SubjectPublicKeyInfo.getInstance(cert.getPublicKey().getEncoded()),
-                HybridKey.fromCert(cert).getKey());
-        for (String oid : cert.getCriticalExtensionOIDs()) {
-            builder.addExtension(new ASN1ObjectIdentifier(oid), true, cert.getExtensionValue(oid));
-        }
-        for (String oid : cert.getNonCriticalExtensionOIDs()) {
-            if (!oid.equals(HybridKey.OID) && !oid.equals(HybridSignature.OID))
-                builder.addExtension(new ASN1ObjectIdentifier(oid), false, cert.getExtensionValue(oid));
-        }
-        return builder.getBaseCert();*/
     }
 }
