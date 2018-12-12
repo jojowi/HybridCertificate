@@ -3,7 +3,6 @@ package org.bouncycastle.cert;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.HybridSignature;
 import org.bouncycastle.asn1.x509.TBSCertificate;
-import org.bouncycastle.jcajce.provider.asymmetric.X509;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -13,9 +12,9 @@ import java.util.Arrays;
 
 public class HybridCertUtils {
 
-    public static byte[] extractBaseCert(X509Certificate cert, int secondarySigSize) throws CertificateEncodingException {
+    public static byte[] extractBaseCert(X509Certificate cert) throws IOException, CertificateEncodingException {
         byte[] base = cert.getTBSCertificate();
-        Arrays.fill(base, base.length - secondarySigSize, base.length, (byte) 0);
+        Arrays.fill(base, base.length - HybridSignature.fromCert(cert).getLength(), base.length, (byte) 0);
         return base;
     }
 

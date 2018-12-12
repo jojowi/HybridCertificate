@@ -31,7 +31,7 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize);
         try {
             byte[] signature = generateSig(secondary, tbs);
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
+            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature, secondarySigSize));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -50,7 +50,7 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         try {
             addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
             byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros));
+            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondarySigSize));
         } catch (CertIOException e) {
             e.printStackTrace();
         }

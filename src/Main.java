@@ -1,6 +1,4 @@
 
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
@@ -46,8 +44,8 @@ public class Main {
 //        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
 //        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
 
-        //createCert("CA1", "CA1");
-        //createCert("CA2", "CA1");
+        createCert("CA1", "CA1");
+        createCert("CA2", "CA1");
         createCert("EE", "CA2");
 
         X509Certificate ca1 = readCertificate("CA1");
@@ -57,7 +55,7 @@ public class Main {
         QTESLASigner verify = new QTESLASigner();
         verify.init(false, HybridKey.fromCert(ca2).getKey());
         System.out.println(Arrays.toString(ee.getTBSCertificate()));
-        byte[] base = HybridCertUtils.extractBaseCert(ee, QTESLAUtils.getSignatureSize(4));
+        byte[] base = HybridCertUtils.extractBaseCert(ee);
         System.out.println(Arrays.toString(base));
         System.out.println(Arrays.toString(HybridSignature.fromCert(ee).getSignature()));
         System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
