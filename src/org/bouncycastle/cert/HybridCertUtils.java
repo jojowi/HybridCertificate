@@ -3,15 +3,24 @@ package org.bouncycastle.cert;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.HybridSignature;
 import org.bouncycastle.asn1.x509.TBSCertificate;
+import org.bouncycastle.jcajce.provider.asymmetric.X509;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 public class HybridCertUtils {
 
-    public static byte[] extractBaseCert(X509Certificate cert) throws IOException {
+    public static byte[] extractBaseCert(X509Certificate cert, int secondarySigSize) throws CertificateEncodingException {
+        byte[] base = cert.getTBSCertificate();
+        Arrays.fill(base, base.length - secondarySigSize, base.length, (byte) 0);
+        return base;
+    }
+
+    @Deprecated
+    public static byte[] extractBaseCertRebuild(X509Certificate cert) throws IOException {
         ASN1Sequence tbs = null;
         ASN1EncodableVector newTbs = new ASN1EncodableVector();
         try {

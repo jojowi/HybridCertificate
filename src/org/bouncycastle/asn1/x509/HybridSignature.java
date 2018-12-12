@@ -4,7 +4,6 @@ import org.bouncycastle.asn1.*;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 
 public class HybridSignature extends ASN1Object {
 
@@ -17,7 +16,7 @@ public class HybridSignature extends ASN1Object {
 
     @Override
     public ASN1Primitive toASN1Primitive() {
-        return new DEROctetString(signature);
+        return new DERBitString(signature);
     }
 
     public byte[] getSignature() {
@@ -28,9 +27,8 @@ public class HybridSignature extends ASN1Object {
     public static HybridSignature fromCert(X509Certificate cert) throws IOException {
         byte[] data = cert.getExtensionValue(OID);
         ASN1InputStream input = new ASN1InputStream(data);
-
         ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
-        ASN1OctetString inner = (ASN1OctetString) ASN1OctetString.fromByteArray(octstr.getOctets());
+        ASN1BitString inner = (ASN1BitString) ASN1BitString.fromByteArray(octstr.getOctets());
         return new HybridSignature(inner.getOctets());
     }
 }

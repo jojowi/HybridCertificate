@@ -1,4 +1,6 @@
 
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
@@ -44,13 +46,9 @@ public class Main {
 //        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
 //        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
 
-        AsymmetricCipherKeyPair primary = readRSAKeyPair("EE");
-        AsymmetricCipherKeyPair primarySigner = readRSAKeyPair("CA2");
-        AsymmetricCipherKeyPair secondary = readQTESLAKeyPair("EE");
-        AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair("CA2");
-
-        X509Certificate cert = createCertificate("EE", "CA2", primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
-        saveCertificateAsPEM(cert, "CA2-EE");
+        //createCert("CA1", "CA1");
+        //createCert("CA2", "CA1");
+        createCert("EE", "CA2");
 
         X509Certificate ca1 = readCertificate("CA1");
         X509Certificate ca2 = readCertificate("CA1-CA2");
@@ -58,10 +56,22 @@ public class Main {
 
         QTESLASigner verify = new QTESLASigner();
         verify.init(false, HybridKey.fromCert(ca2).getKey());
-        byte[] base = HybridCertUtils.extractBaseCert(ee);
+        System.out.println(Arrays.toString(ee.getTBSCertificate()));
+        byte[] base = HybridCertUtils.extractBaseCert(ee, QTESLAUtils.getSignatureSize(4));
         System.out.println(Arrays.toString(base));
         System.out.println(Arrays.toString(HybridSignature.fromCert(ee).getSignature()));
         System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
+    }
+
+    private static void createCert(String subject, String issuer) throws CertificateEncodingException, IOException {
+        AsymmetricCipherKeyPair primary = readRSAKeyPair(subject);
+        AsymmetricCipherKeyPair primarySigner = readRSAKeyPair(issuer);
+        AsymmetricCipherKeyPair secondary = readQTESLAKeyPair(subject);
+        AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair(issuer);
+
+        X509Certificate cert = createCertificate(subject, issuer, primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
+        saveCertificateAsPEM(cert, issuer.equals(subject) ? issuer : issuer + "-" + subject);
+        //System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(cert.getTBSCertificate())));
     }
 
     private static AsymmetricCipherKeyPair createRSAKeyPair(String name) {
@@ -222,7 +232,7 @@ public class Main {
             MessageSigner sigSecondary = new QTESLASigner();
             sigSecondary.init(true, secondarySigner);
 
-            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary);
+            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(4));
             X509Certificate cert =  new JcaX509CertificateConverter().getCertificate(x509CertificateHolder);
             return cert;
         } catch (Exception e) {

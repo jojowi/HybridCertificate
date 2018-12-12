@@ -1,6 +1,7 @@
 package org.bouncycastle.asn1.x509;
 
 import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
@@ -28,7 +29,7 @@ public class HybridKey extends ASN1Object {
 
     @Override
     public ASN1Primitive toASN1Primitive() {
-        return new DERSequence(key);
+        return key.toASN1Primitive();
     }
 
     public AsymmetricKeyParameter getKey() {
@@ -58,8 +59,7 @@ public class HybridKey extends ASN1Object {
         byte[] data = cert.getExtensionValue(OID);
         ASN1InputStream input = new ASN1InputStream(data);
         ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
-        ASN1Sequence asn2 = ASN1Sequence.getInstance(ASN1Primitive.fromByteArray(octstr.getOctets()));
-        SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(asn2.getObjectAt(0));
+        SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(octstr.getOctets());
         return new HybridKey(subjectPublicKeyInfo);
     }
 }

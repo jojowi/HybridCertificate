@@ -34,5 +34,9 @@ public class QTESLAUtils {
         return new QTESLAPrivateKeyParameters(sec.getValue().intValue(), der.getBytes());
     }
 
+    public static int getSignatureSize(int securityCategory) {
+        return QTESLASecurityCategory.getSignatureSize(securityCategory);
+    }
+
 
 }
