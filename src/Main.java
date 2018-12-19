@@ -1,9 +1,13 @@
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.path.CertPath;
+import org.bouncycastle.cert.path.CertPathValidation;
+import org.bouncycastle.cert.path.validations.HybridValidation;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
@@ -17,6 +21,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
 import org.bouncycastle.cert.HybridCertUtils;
 import org.bouncycastle.pqc.crypto.MessageSigner;
@@ -34,15 +39,15 @@ import java.util.GregorianCalendar;
 
 
 public class Main {
-    public static void main(String[]args) throws IOException, CertificateEncodingException {
+    public static void main(String[]args) throws IOException, CertificateEncodingException, OperatorCreationException {
 
 
-//        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
-//        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
-//        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
-//        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
-//        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
-//        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
+        /*AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
+        AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
+        AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
+        AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
+        AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
+        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");*/
 
         createCert("CA1", "CA1");
         createCert("CA2", "CA1");
@@ -53,12 +58,13 @@ public class Main {
         X509Certificate ee = readCertificate("CA2-EE");
 
         QTESLASigner verify = new QTESLASigner();
-        verify.init(false, HybridKey.fromCert(ca2).getKey());
-        System.out.println(Arrays.toString(ee.getTBSCertificate()));
-        byte[] base = HybridCertUtils.extractBaseCert(ee);
-        System.out.println(Arrays.toString(base));
-        System.out.println(Arrays.toString(HybridSignature.fromCert(ee).getSignature()));
-        System.out.println(verify.verifySignature(base, HybridSignature.fromCert(ee).getSignature()));
+        verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca2).getKey()));
+        System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCert(ee), HybridSignature.fromCert(ee).getSignature()));
+
+        X509CertificateHolder[] certs = {new X509CertificateHolder(ee.getEncoded()), new X509CertificateHolder(ca2.getEncoded()), new X509CertificateHolder(ca1.getEncoded())};
+        CertPath path = new CertPath(certs);
+        CertPathValidation[] val = {new HybridValidation()};
+        System.out.println(path.validate(val).isValid());
     }
 
     private static void createCert(String subject, String issuer) throws CertificateEncodingException, IOException {
@@ -145,7 +151,7 @@ public class Main {
     private static AsymmetricCipherKeyPair createQTESLAKeyPair(String name) {
         QTESLAKeyPairGenerator gen = new QTESLAKeyPairGenerator();
         try {
-            gen.init(new QTESLAKeyGenerationParameters(4, SecureRandom.getInstanceStrong()));
+            gen.init(new QTESLAKeyGenerationParameters(QTESLASecurityCategory.HEURISTIC_III_SIZE, SecureRandom.getInstanceStrong()));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -153,7 +159,8 @@ public class Main {
         try {
             File file = new File(name + "_public.key");
             FileOutputStream out = new FileOutputStream(file);
-            out.write(QTESLAUtils.toASN1Primitive((QTESLAPublicKeyParameters) pair.getPublic()).getEncoded());
+            //out.write(QTESLAUtils.toASN1Primitive((QTESLAPublicKeyParameters) pair.getPublic()).getEncoded());
+            out.write(((QTESLAPublicKeyParameters)pair.getPublic()).getPublicData());
             out.close();
             file = new File(name + "_private.key");
             out = new FileOutputStream(file);
@@ -169,11 +176,11 @@ public class Main {
         try {
             File file = new File(name + "_public.key");
             FileInputStream in = new FileInputStream(file);
-            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes());
+            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SIZE);
             in.close();
             file = new File(name + "_private.key");
             in = new FileInputStream(file);
-            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes());
+            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SIZE);
             in.close();
             return new AsymmetricCipherKeyPair(pub, priv);
         } catch (IOException e) {
@@ -230,7 +237,7 @@ public class Main {
             MessageSigner sigSecondary = new QTESLASigner();
             sigSecondary.init(true, secondarySigner);
 
-            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(4));
+            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(QTESLASecurityCategory.HEURISTIC_III_SIZE), new AlgorithmIdentifier(new ASN1ObjectIdentifier(QTESLAUtils.OID_HEURISTIC_III_SIZE)));
             X509Certificate cert =  new JcaX509CertificateConverter().getCertificate(x509CertificateHolder);
             return cert;
         } catch (Exception e) {

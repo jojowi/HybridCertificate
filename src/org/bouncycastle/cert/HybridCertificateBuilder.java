@@ -4,10 +4,7 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.HybridKey;
-import org.bouncycastle.asn1.x509.HybridSignature;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.asn1.x509.TBSCertificate;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.pqc.crypto.MessageSigner;
@@ -27,16 +24,16 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         this.secondary = secondary;
     }
 
-    public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary, int secondarySigSize) {
-        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize);
+    /*public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary, int secondarySigSize) {
+        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());
         try {
             byte[] signature = generateSig(secondary, tbs);
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature, secondarySigSize));
+            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature, secondarySigSize, secondary.getAlgorithmIdentifier()));
         } catch (IOException e) {
             e.printStackTrace();
         }
         return build(primary);
-    }
+    }*/
 
     private static byte[] generateSig(ContentSigner signer, ASN1Encodable tbsCert) throws IOException {
         OutputStream out = signer.getOutputStream();
@@ -46,11 +43,11 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return signer.getSignature();
     }
 
-    private TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize) {
+    private TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
         try {
             addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
             byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondarySigSize));
+            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondarySigSize, secondaryAlgId));
         } catch (CertIOException e) {
             e.printStackTrace();
         }
@@ -58,8 +55,8 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return cert.toASN1Structure().getTBSCertificate();
     }
 
-    public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary, int secondarySigSize) {
-        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize);
+    public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
+        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondaryAlgId);
         byte[] bytes = null;
         try {
             System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));

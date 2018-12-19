@@ -1,7 +1,6 @@
 package org.bouncycastle.asn1.x509;
 
 import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
@@ -12,7 +11,7 @@ import java.security.cert.X509Certificate;
 
 public class HybridKey extends ASN1Object {
 
-    public static final String OID = "2.5.29.55";
+    public static final String OID = "2.5.29.211";
     private SubjectPublicKeyInfo key;
 
     public HybridKey(AsymmetricKeyParameter key) {
@@ -32,25 +31,14 @@ public class HybridKey extends ASN1Object {
         return key.toASN1Primitive();
     }
 
-    public AsymmetricKeyParameter getKey() {
-        try {
-            switch (key.getAlgorithm().getAlgorithm().getId()) {
-                case "1.2.840.113549.1.1.12":
-                    byte[] data = key.getPublicKeyData().getEncoded();
-                    ASN1BitString asn1 = (ASN1BitString) ASN1BitString.fromByteArray(data);
-                    return QTESLAUtils.fromASN1Primitive(asn1.getBytes());
-                default:
-                    throw new IllegalArgumentException("key parameters not recognised.");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+    public SubjectPublicKeyInfo getKey() {
+        return key;
     }
 
     private static SubjectPublicKeyInfo createSubjectPublicKeyInfo(AsymmetricKeyParameter publicKey) throws IOException {
         if (publicKey instanceof QTESLAPublicKeyParameters) {
-            return new SubjectPublicKeyInfo(new AlgorithmIdentifier(new ASN1ObjectIdentifier("1.2.840.113549.1.1.12")), QTESLAUtils.toASN1Primitive((QTESLAPublicKeyParameters) publicKey));
+            AlgorithmIdentifier algId = QTESLAUtils.getAlgorithmIdentifier(((QTESLAPublicKeyParameters) publicKey).getSecurityCategory());
+            return new SubjectPublicKeyInfo(algId, ((QTESLAPublicKeyParameters) publicKey).getPublicData());
         } else
         return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
     }
