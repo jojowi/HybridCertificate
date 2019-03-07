@@ -1,19 +1,20 @@
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.path.CertPath;
-import org.bouncycastle.cert.path.CertPathValidation;
-import org.bouncycastle.cert.path.validations.HybridValidation;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtils;
+import org.bouncycastle.jce.provider.HybridCertPathValidatorResult;
+import org.bouncycastle.jce.provider.HybridCertPathValidatorSpi;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -32,14 +33,11 @@ import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.*;
 import java.security.cert.Certificate;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.*;
 
 
 public class Main {
-    public static void main(String[]args) throws IOException, CertificateEncodingException, OperatorCreationException {
+    public static void main(String[]args) throws IOException, CertificateException, OperatorCreationException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, CertPathBuilderException, CertPathValidatorException {
 
 
         /*AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
@@ -53,18 +51,87 @@ public class Main {
         createCert("CA2", "CA1");
         createCert("EE", "CA2");
 
-        X509Certificate ca1 = readCertificate("CA1");
-        X509Certificate ca2 = readCertificate("CA1-CA2");
-        X509Certificate ee = readCertificate("CA2-EE");
+        X509Certificate ca1 = readCertificate("CA1.crt");
+        X509Certificate ca2 = readCertificate("CA1-CA2.crt");
+        X509Certificate ee = readCertificate("CA2-EE.crt");
 
         QTESLASigner verify = new QTESLASigner();
-        verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca2).getKey()));
-        System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCert(ee), HybridSignature.fromCert(ee).getSignature()));
+        verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca1).getKey()));
+        System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCertSearch(ca2), HybridSignature.fromCert(ca2).getSignature()));
 
-        X509CertificateHolder[] certs = {new X509CertificateHolder(ee.getEncoded()), new X509CertificateHolder(ca2.getEncoded()), new X509CertificateHolder(ca1.getEncoded())};
-        CertPath path = new CertPath(certs);
-        CertPathValidation[] val = {new HybridValidation()};
-        System.out.println(path.validate(val).isValid());
+        /*for(byte c : ca1.getEncoded()) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        for(byte c : ca1.getTBSCertificate()) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        for(byte c : ca1.getExtensionValue("2.5.29.212")) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        System.out.println(Arrays.toString(ca1.getExtensionValue("2.5.29.212")));
+        System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(ca1.getEncoded())));*/
+
+        List<Certificate> certificates = new LinkedList<>();
+        certificates.add(ee);
+        certificates.add(ca2);
+        certificates.add(ca1);
+        TrustAnchor anchor = new TrustAnchor(ca1, null);
+
+        HybridCertUtils.extractBaseCertSearch(ca1);
+        HybridCertUtils.extractBaseCertSearch(ca2);
+        HybridCertUtils.extractBaseCertSearch(ee);
+        verifyCertPath(certificates, anchor);
+
+
+        ca1 = readCertificate("ca1.cert.pem");
+        ca2 = readCertificate("intermediate.cert.pem");
+        ee = readCertificate("client.cert.pem");
+
+        verify = new QTESLASigner();
+        verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca1).getKey()));
+        System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCertSearch(ca1), HybridSignature.fromCert(ca1).getSignature()));
+
+        /*for(byte c : ca1.getEncoded()) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        for(byte c : ca1.getTBSCertificate()) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        for(byte c : ca1.getExtensionValue("2.5.29.212")) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        for(byte c : ca1.getExtensionValue("2.5.29.211")) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        System.out.println(Arrays.toString(ca1.getExtensionValue("2.5.29.212")));
+        System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(ca1.getEncoded())));
+        //System.out.println(ca2);
+        //System.out.println(ee);*/
+        certificates = new LinkedList<>();
+        certificates.add(ee);
+        certificates.add(ca2);
+        certificates.add(ca1);
+        anchor = new TrustAnchor(ca1, null);
+        verifyCertPath(certificates, anchor);
+    }
+
+    private static void verifyCertPath(List<Certificate> certificates, TrustAnchor anchor) throws CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException {
+        CertificateFactory factory = CertificateFactory.getInstance("X.509");
+        CertPath certPath = factory.generateCertPath(certificates);
+        HybridCertPathValidatorSpi validator = new HybridCertPathValidatorSpi();
+        Set<TrustAnchor> anchors = new HashSet<>();
+        anchors.add(anchor);
+        PKIXParameters params = new PKIXParameters(anchors);
+        params.setRevocationEnabled(false);
+        HybridCertPathValidatorResult result = validator.engineValidate(certPath, params);
+        System.out.println(result.isHybridChainValidated());
     }
 
     private static void createCert(String subject, String issuer) throws CertificateEncodingException, IOException {
@@ -151,7 +218,7 @@ public class Main {
     private static AsymmetricCipherKeyPair createQTESLAKeyPair(String name) {
         QTESLAKeyPairGenerator gen = new QTESLAKeyPairGenerator();
         try {
-            gen.init(new QTESLAKeyGenerationParameters(QTESLASecurityCategory.HEURISTIC_III_SIZE, SecureRandom.getInstanceStrong()));
+            gen.init(new QTESLAKeyGenerationParameters(QTESLASecurityCategory.HEURISTIC_III_SPEED, SecureRandom.getInstanceStrong()));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -176,11 +243,11 @@ public class Main {
         try {
             File file = new File(name + "_public.key");
             FileInputStream in = new FileInputStream(file);
-            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SIZE);
+            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SPEED);
             in.close();
             file = new File(name + "_private.key");
             in = new FileInputStream(file);
-            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SIZE);
+            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SPEED);
             in.close();
             return new AsymmetricCipherKeyPair(pub, priv);
         } catch (IOException e) {
@@ -191,7 +258,7 @@ public class Main {
 
     private static X509Certificate readCertificate(String name) {
         try {
-            FileInputStream fis = new FileInputStream(name + ".crt");
+            FileInputStream fis = new FileInputStream(name);
             BufferedInputStream bis = new BufferedInputStream(fis);
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             Certificate c = cf.generateCertificate(bis);
@@ -232,12 +299,13 @@ public class Main {
                     SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(primary.getPublic()),
                     secondary.getPublic()
             );
+            certificateBuilder.addExtension(new ASN1ObjectIdentifier("2.5.29.19"), false, new BasicConstraints(true));
 
             ContentSigner sigPrimary = new BcRSAContentSignerBuilder(sigAlg, digAlg).build(primarySigner);
             MessageSigner sigSecondary = new QTESLASigner();
             sigSecondary.init(true, secondarySigner);
 
-            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(QTESLASecurityCategory.HEURISTIC_III_SIZE), new AlgorithmIdentifier(new ASN1ObjectIdentifier(QTESLAUtils.OID_HEURISTIC_III_SIZE)));
+            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(QTESLASecurityCategory.HEURISTIC_III_SPEED), new AlgorithmIdentifier(new ASN1ObjectIdentifier(QTESLAUtils.OID_HEURISTIC_III_SPEED)));
             X509Certificate cert =  new JcaX509CertificateConverter().getCertificate(x509CertificateHolder);
             return cert;
         } catch (Exception e) {

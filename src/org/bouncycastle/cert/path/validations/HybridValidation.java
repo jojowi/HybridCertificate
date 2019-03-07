@@ -47,7 +47,7 @@ public class HybridValidation implements CertPathValidation {
             QTESLASigner signer = new QTESLASigner();
             signer.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(hybridPublicKey));
             try {
-                verify = signer.verifySignature(HybridCertUtils.extractBaseCert(cert), HybridSignature.fromCert(cert).getSignature());
+                verify = signer.verifySignature(HybridCertUtils.extractBaseCertSearch(cert), HybridSignature.fromCert(cert).getSignature());
             } catch (IOException | CertificateEncodingException e) {
                 e.printStackTrace();
             }
@@ -56,7 +56,7 @@ public class HybridValidation implements CertPathValidation {
                 JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
                 Signature signature = VerifyHelper.createSignature(algId);
                 signature.initVerify(converter.getPublicKey(hybridPublicKey));
-                signature.update(HybridCertUtils.extractBaseCert(cert));
+                signature.update(HybridCertUtils.extractBaseCertSearch(cert));
                 verify = signature.verify(HybridSignature.fromCert(cert).getSignature());
             } catch (NoSuchAlgorithmException | IOException | SignatureException | InvalidKeyException | CertificateEncodingException e) {
                 e.printStackTrace();

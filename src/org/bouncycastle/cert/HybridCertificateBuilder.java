@@ -12,7 +12,6 @@ import org.bouncycastle.pqc.crypto.MessageSigner;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Date;
 
 public class HybridCertificateBuilder extends X509v3CertificateBuilder {
@@ -47,7 +46,7 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         try {
             addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
             byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondarySigSize, secondaryAlgId));
+            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
         } catch (CertIOException e) {
             e.printStackTrace();
         }
@@ -59,13 +58,9 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondaryAlgId);
         byte[] bytes = null;
         try {
-            System.out.println(Arrays.toString(tbs.toASN1Primitive().getEncoded()));
             byte[] signature = secondary.generateSignature(tbs.toASN1Primitive().getEncoded());
-            System.out.println(Arrays.toString(signature));
             bytes = tbs.getEncoded();
             System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
-            System.out.println(Arrays.toString(bytes));
-            System.out.println(Arrays.toString(TBSCertificate.getInstance(bytes).toASN1Primitive().getEncoded()));
             //addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
         } catch (IOException e) {
             e.printStackTrace();

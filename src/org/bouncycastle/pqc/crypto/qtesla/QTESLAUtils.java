@@ -6,6 +6,7 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 
 import java.io.*;
+import java.util.Arrays;
 
 public class QTESLAUtils {
 
@@ -30,7 +31,7 @@ public class QTESLAUtils {
         return new QTESLAPrivateKeyParameters(securityCategory, seq.getBytes());
     }
 
-    public static AsymmetricKeyParameter fromSubjectPublicKeyInfo(SubjectPublicKeyInfo key) {
+    public static QTESLAPublicKeyParameters fromSubjectPublicKeyInfo(SubjectPublicKeyInfo key) {
         try {
             byte[] data = key.getPublicKeyData().getEncoded();;
             ASN1BitString asn1 = (ASN1BitString) ASN1BitString.fromByteArray(data);

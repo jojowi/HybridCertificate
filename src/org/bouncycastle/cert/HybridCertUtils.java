@@ -9,12 +9,42 @@ import java.lang.reflect.InvocationTargetException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class HybridCertUtils {
 
+    @Deprecated
     public static byte[] extractBaseCert(X509Certificate cert) throws IOException, CertificateEncodingException {
         byte[] base = cert.getTBSCertificate();
-        Arrays.fill(base, base.length - HybridSignature.fromCert(cert).getLength(), base.length, (byte) 0);
+        Arrays.fill(base, base.length - HybridSignature.fromCert(cert).getSignature().length, base.length, (byte) 0);
+        for(byte c : base) {
+            System.out.format("%h ", c);
+        }
+        System.out.println();
+        return base;
+    }
+
+    public static byte[] extractBaseCertSearch(X509Certificate cert) throws IOException, CertificateEncodingException {
+        long start = System.nanoTime();
+        byte[] base = cert.getTBSCertificate();
+        byte[] signature = HybridSignature.fromCert(cert).getSignature();
+        List<Byte> baseList = new LinkedList<>();
+        for (byte b : base) {
+            baseList.add(b);
+        }
+        List<Byte> sigList = new LinkedList<>();
+        for (byte b : signature) {
+            sigList.add(b);
+        }
+        int index = Collections.indexOfSubList(baseList, sigList);
+        Arrays.fill(base, index, index + signature.length, (byte) 0);
+        long end = System.nanoTime();
+        long diff = end - start;
+        System.out.println("Time: " + (diff / 1000000f));
+        System.out.println(Arrays.toString(base));
         return base;
     }
 

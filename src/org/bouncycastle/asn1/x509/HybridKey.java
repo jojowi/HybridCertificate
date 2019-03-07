@@ -1,6 +1,7 @@
 package org.bouncycastle.asn1.x509;
 
 import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
@@ -8,6 +9,7 @@ import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 public class HybridKey extends ASN1Object {
 
