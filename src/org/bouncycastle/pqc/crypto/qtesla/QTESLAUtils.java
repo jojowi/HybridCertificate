@@ -4,6 +4,7 @@ import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 
 import java.io.*;
 import java.util.Arrays;

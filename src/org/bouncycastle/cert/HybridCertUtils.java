@@ -27,6 +27,12 @@ public class HybridCertUtils {
         return base;
     }
 
+    /**
+     * Extract the "base cert" from a hybrid certificate (the part over which the secondary signature was built)
+     *
+     * @param cert
+     * @return
+     */
     public static byte[] extractBaseCertSearch(X509Certificate cert) throws IOException, CertificateEncodingException {
         long start = System.nanoTime();
         byte[] base = cert.getTBSCertificate();

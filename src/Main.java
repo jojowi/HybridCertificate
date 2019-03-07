@@ -35,17 +35,19 @@ import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.util.*;
 
-
+/**
+ * Example code for using the hybrid certificate functionality
+ */
 public class Main {
-    public static void main(String[]args) throws IOException, CertificateException, OperatorCreationException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, CertPathBuilderException, CertPathValidatorException {
+    public static void main(String[]args) throws IOException, CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException {
 
 
-        /*AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
+        AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
         AsymmetricCipherKeyPair CA2sec = createQTESLAKeyPair("CA2");
         AsymmetricCipherKeyPair EEsec = createQTESLAKeyPair("EE");
         AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
         AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
-        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");*/
+        AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
 
         createCert("CA1", "CA1");
         createCert("CA2", "CA1");
@@ -59,22 +61,7 @@ public class Main {
         verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca1).getKey()));
         System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCertSearch(ca2), HybridSignature.fromCert(ca2).getSignature()));
 
-        /*for(byte c : ca1.getEncoded()) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        for(byte c : ca1.getTBSCertificate()) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        for(byte c : ca1.getExtensionValue("2.5.29.212")) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        System.out.println(Arrays.toString(ca1.getExtensionValue("2.5.29.212")));
-        System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(ca1.getEncoded())));*/
-
-        List<Certificate> certificates = new LinkedList<>();
+        List<X509Certificate> certificates = new LinkedList<>();
         certificates.add(ee);
         certificates.add(ca2);
         certificates.add(ca1);
@@ -83,7 +70,7 @@ public class Main {
         HybridCertUtils.extractBaseCertSearch(ca1);
         HybridCertUtils.extractBaseCertSearch(ca2);
         HybridCertUtils.extractBaseCertSearch(ee);
-        verifyCertPath(certificates, anchor);
+        verifyCertPath(certificates);
 
 
         ca1 = readCertificate("ca1.cert.pem");
@@ -92,40 +79,24 @@ public class Main {
 
         verify = new QTESLASigner();
         verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca1).getKey()));
-        System.out.println(verify.verifySignature(HybridCertUtils.extractBaseCertSearch(ca1), HybridSignature.fromCert(ca1).getSignature()));
-
-        /*for(byte c : ca1.getEncoded()) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        for(byte c : ca1.getTBSCertificate()) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        for(byte c : ca1.getExtensionValue("2.5.29.212")) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        for(byte c : ca1.getExtensionValue("2.5.29.211")) {
-            System.out.format("%h ", c);
-        }
-        System.out.println();
-        System.out.println(Arrays.toString(ca1.getExtensionValue("2.5.29.212")));
-        System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(ca1.getEncoded())));
-        //System.out.println(ca2);
-        //System.out.println(ee);*/
         certificates = new LinkedList<>();
         certificates.add(ee);
         certificates.add(ca2);
         certificates.add(ca1);
         anchor = new TrustAnchor(ca1, null);
-        verifyCertPath(certificates, anchor);
+        verifyCertPath(certificates);
     }
 
-    private static void verifyCertPath(List<Certificate> certificates, TrustAnchor anchor) throws CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException {
+    /**
+     * Try to verify a hybrid end entity certificate
+     *
+     * @param certificates the certification path, starting with the end entity and ending with the trust anchor
+     */
+    private static void verifyCertPath(List<X509Certificate> certificates) throws CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException {
         CertificateFactory factory = CertificateFactory.getInstance("X.509");
         CertPath certPath = factory.generateCertPath(certificates);
         HybridCertPathValidatorSpi validator = new HybridCertPathValidatorSpi();
+        TrustAnchor anchor = new TrustAnchor(certificates.get(certificates.size() - 1), null);
         Set<TrustAnchor> anchors = new HashSet<>();
         anchors.add(anchor);
         PKIXParameters params = new PKIXParameters(anchors);
@@ -134,7 +105,7 @@ public class Main {
         System.out.println(result.isHybridChainValidated());
     }
 
-    private static void createCert(String subject, String issuer) throws CertificateEncodingException, IOException {
+    private static void createCert(String subject, String issuer) {
         AsymmetricCipherKeyPair primary = readRSAKeyPair(subject);
         AsymmetricCipherKeyPair primarySigner = readRSAKeyPair(issuer);
         AsymmetricCipherKeyPair secondary = readQTESLAKeyPair(subject);

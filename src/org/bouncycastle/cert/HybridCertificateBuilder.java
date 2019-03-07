@@ -14,10 +14,24 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.Date;
 
+/**
+ * Helper class to create hybrid certificates
+ */
 public class HybridCertificateBuilder extends X509v3CertificateBuilder {
 
     private AsymmetricKeyParameter secondary;
 
+    /**
+     * Create a builder for a version 3 certificate.
+     *
+     * @param issuer the certificate issuer
+     * @param serial the certificate serial number
+     * @param notBefore the date before which the certificate is not valid
+     * @param notAfter the date after which the certificate is not valid
+     * @param subject the certificate subject
+     * @param primary the public key to be associated with this certificate.
+     * @param secondary the second (hybrid) public key to be associated with this certificate
+     */
     public HybridCertificateBuilder(X500Name issuer, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, SubjectPublicKeyInfo primary, AsymmetricKeyParameter secondary) {
         super(issuer, serial, notBefore, notAfter, subject, primary);
         this.secondary = secondary;
@@ -34,13 +48,14 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return build(primary);
     }*/
 
+    /*
     private static byte[] generateSig(ContentSigner signer, ASN1Encodable tbsCert) throws IOException {
         OutputStream out = signer.getOutputStream();
         DEROutputStream derOut = new DEROutputStream(out);
         derOut.writeObject(tbsCert);
         out.close();
         return signer.getSignature();
-    }
+    }*/
 
     private TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
         try {
@@ -54,6 +69,15 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         return cert.toASN1Structure().getTBSCertificate();
     }
 
+    /**
+     * Generate a hybrid X.509 certificate, based on the current issuer and subject using the passed in signer.
+     *
+     * @param primary the content signer to be used to generate the signature validating the certificate
+     * @param secondary the message signer to be used to generate the secondary (hybrid) signature
+     * @param secondarySigSize the signature of the secondary (hybrid) signature scheme (in bytes)
+     * @param secondaryAlgId the AlgId of the secondary (hybrid) signature scheme
+     * @return a holder containing the resulting signed hybrid certificate
+     */
     public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
         TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondaryAlgId);
         byte[] bytes = null;

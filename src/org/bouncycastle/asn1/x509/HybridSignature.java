@@ -10,6 +10,12 @@ public class HybridSignature extends ASN1Object {
     private byte[] signature;
     private AlgorithmIdentifier algId;
 
+    /**
+     * Create a new HybridSignature-Extension
+     *
+     * @param signature the signature
+     * @param algId the AlgId of the signature
+     */
     public HybridSignature(byte[] signature, AlgorithmIdentifier algId) {
         this.signature = signature;
         this.algId = algId;
@@ -23,15 +29,30 @@ public class HybridSignature extends ASN1Object {
         return new DERSequence(v);
     }
 
+    /**
+     * Query the signature from the extension
+     *
+     * @return the signature bytes
+     */
     public byte[] getSignature() {
-        //System.out.println(Arrays.toString(signature));
         return signature;
     }
 
+    /**
+     * Query the AlgId from the extension
+     *
+     * @return the AlgId of the signature
+     */
     public AlgorithmIdentifier getAlgorithmIdentifier() {
         return algId;
     }
 
+    /**
+     * Extract the HybridSignature-Extension from a certificate
+     *
+     * @param cert the certificate
+     * @return the HybridSignature-Extension
+     */
     public static HybridSignature fromCert(X509Certificate cert) throws IOException {
         byte[] data = cert.getExtensionValue(OID);
         ASN1InputStream input = new ASN1InputStream(data);

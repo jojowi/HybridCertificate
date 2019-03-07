@@ -16,6 +16,11 @@ public class HybridKey extends ASN1Object {
     public static final String OID = "2.5.29.211";
     private SubjectPublicKeyInfo key;
 
+    /**
+     * Create a new HybridKey-Extension
+     *
+     * @param key the public key
+     */
     public HybridKey(AsymmetricKeyParameter key) {
         try {
             this.key = createSubjectPublicKeyInfo(key);
@@ -24,7 +29,12 @@ public class HybridKey extends ASN1Object {
         }
     }
 
-    private HybridKey(SubjectPublicKeyInfo key) {
+    /**
+     * Create a new HybridKey-Extension from a SubjectPublicKeyInfo
+     *
+     * @param key the public key
+     */
+    public HybridKey(SubjectPublicKeyInfo key) {
         this.key = key;
     }
 
@@ -33,6 +43,11 @@ public class HybridKey extends ASN1Object {
         return key.toASN1Primitive();
     }
 
+    /**
+     * Query the public key from the extension
+     *
+     * @return the public key
+     */
     public SubjectPublicKeyInfo getKey() {
         return key;
     }
@@ -45,6 +60,12 @@ public class HybridKey extends ASN1Object {
         return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
     }
 
+    /**
+     * Extracts the HybridKey-Extension from a given certificate
+     *
+     * @param cert the certificate
+     * @return the HybridKey-Extension
+     */
     public static HybridKey fromCert(X509Certificate cert) throws IOException {
         byte[] data = cert.getExtensionValue(OID);
         ASN1InputStream input = new ASN1InputStream(data);
