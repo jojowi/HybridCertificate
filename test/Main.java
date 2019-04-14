@@ -1,11 +1,12 @@
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.util.ASN1Dump;
+import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.cert.HybridCertificateBuilder;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
@@ -19,13 +20,14 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.*;
+import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
 import org.bouncycastle.cert.HybridCertUtils;
-import org.bouncycastle.pqc.crypto.MessageSigner;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
+import org.bouncycastle.pkcs.HybridCSRBuilder;
+import org.bouncycastle.pkcs.HybridCSRUtils;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pqc.crypto.qtesla.*;
 
 import java.io.*;
@@ -39,7 +41,7 @@ import java.util.*;
  * Example code for using the hybrid certificate functionality
  */
 public class Main {
-    public static void main(String[]args) throws IOException, CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException {
+    public static void main(String[]args) throws IOException, CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException, OperatorCreationException {
 
 
         AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
@@ -73,18 +75,32 @@ public class Main {
         verifyCertPath(certificates);
 
 
-        ca1 = readCertificate("ca1.cert.pem");
-        ca2 = readCertificate("intermediate.cert.pem");
-        ee = readCertificate("client.cert.pem");
-
+        System.out.println("CSR");
+        DefaultSignatureAlgorithmIdentifierFinder sigAlgFinder = new DefaultSignatureAlgorithmIdentifierFinder();
+        DefaultDigestAlgorithmIdentifierFinder digAlgFinder = new DefaultDigestAlgorithmIdentifierFinder();
+        AlgorithmIdentifier sigAlg = sigAlgFinder.find("SHA1withRSA");
+        AlgorithmIdentifier digAlg = digAlgFinder.find(sigAlg);
+        HybridCSRBuilder builder = new HybridCSRBuilder(new X500Name("CN=EE"), SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(EE.getPublic()), EEsec.getPublic());
+        ContentSigner sigPrimary = new BcRSAContentSignerBuilder(sigAlg, digAlg).build(EE.getPrivate());
+        ContentSigner sigSecondary = new QTESLAContentSigner((QTESLAPrivateKeyParameters) EEsec.getPrivate());
+        PKCS10CertificationRequest csr = builder.buildHybrid(sigPrimary, sigSecondary);
+        try {
+            ContentVerifierProvider verifier = new JcaContentVerifierProviderBuilder().build(getKeyFromCSR(csr));
+            System.out.println(csr.isSignatureValid(verifier));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         verify = new QTESLASigner();
-        verify.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(HybridKey.fromCert(ca1).getKey()));
-        certificates = new LinkedList<>();
-        certificates.add(ee);
-        certificates.add(ca2);
-        certificates.add(ca1);
-        anchor = new TrustAnchor(ca1, null);
-        verifyCertPath(certificates);
+        verify.init(false, EEsec.getPublic());
+        System.out.println(verify.verifySignature(HybridCSRUtils.extractBaseCSRSearch(csr), HybridSignature.fromCSR(csr).getSignature()));
+    }
+
+    private static PublicKey getKeyFromCSR(PKCS10CertificationRequest csr) throws Exception {
+        try {
+            return new JcaPEMKeyConverter().getPublicKey(csr.getSubjectPublicKeyInfo());
+        } catch (Exception e) {
+            throw new Exception("failed to get key from CSR: " + e.getMessage() + " (" + e.getClass().getSimpleName() + ")");
+        }
     }
 
     /**
@@ -111,7 +127,7 @@ public class Main {
         AsymmetricCipherKeyPair secondary = readQTESLAKeyPair(subject);
         AsymmetricCipherKeyPair secondarySigner = readQTESLAKeyPair(issuer);
 
-        X509Certificate cert = createCertificate(subject, issuer, primary, secondary, primarySigner.getPrivate(), secondarySigner.getPrivate());
+        X509Certificate cert = createCertificate(subject, issuer, primary, secondary, primarySigner.getPrivate(), (QTESLAPrivateKeyParameters) secondarySigner.getPrivate());
         saveCertificateAsPEM(cert, issuer.equals(subject) ? issuer : issuer + "-" + subject);
         //System.out.println(ASN1Dump.dumpAsString(ASN1Primitive.fromByteArray(cert.getTBSCertificate())));
     }
@@ -242,7 +258,7 @@ public class Main {
         return null;
     }
 
-    private static X509Certificate createCertificate(String subject, String issuer, AsymmetricCipherKeyPair primary, AsymmetricCipherKeyPair secondary, AsymmetricKeyParameter primarySigner, AsymmetricKeyParameter secondarySigner) {
+    private static X509Certificate createCertificate(String subject, String issuer, AsymmetricCipherKeyPair primary, AsymmetricCipherKeyPair secondary, AsymmetricKeyParameter primarySigner, QTESLAPrivateKeyParameters secondarySigner) {
         try {
             DefaultSignatureAlgorithmIdentifierFinder sigAlgFinder = new DefaultSignatureAlgorithmIdentifierFinder();
             DefaultDigestAlgorithmIdentifierFinder digAlgFinder = new DefaultDigestAlgorithmIdentifierFinder();
@@ -273,10 +289,9 @@ public class Main {
             certificateBuilder.addExtension(new ASN1ObjectIdentifier("2.5.29.19"), false, new BasicConstraints(true));
 
             ContentSigner sigPrimary = new BcRSAContentSignerBuilder(sigAlg, digAlg).build(primarySigner);
-            MessageSigner sigSecondary = new QTESLASigner();
-            sigSecondary.init(true, secondarySigner);
+            ContentSigner sigSecondary = new QTESLAContentSigner(secondarySigner);
 
-            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary, QTESLAUtils.getSignatureSize(QTESLASecurityCategory.HEURISTIC_III_SPEED), new AlgorithmIdentifier(new ASN1ObjectIdentifier(QTESLAUtils.OID_HEURISTIC_III_SPEED)));
+            X509CertificateHolder x509CertificateHolder = certificateBuilder.buildHybrid(sigPrimary, sigSecondary);
             X509Certificate cert =  new JcaX509CertificateConverter().getCertificate(x509CertificateHolder);
             return cert;
         } catch (Exception e) {

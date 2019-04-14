@@ -1,24 +1,22 @@
 package org.bouncycastle.cert;
 
-import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.pqc.crypto.MessageSigner;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigInteger;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 
 /**
  * Helper class to create hybrid certificates
  */
 public class HybridCertificateBuilder extends X509v3CertificateBuilder {
-
     private AsymmetricKeyParameter secondary;
 
     /**
@@ -35,6 +33,22 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
     public HybridCertificateBuilder(X500Name issuer, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, SubjectPublicKeyInfo primary, AsymmetricKeyParameter secondary) {
         super(issuer, serial, notBefore, notAfter, subject, primary);
         this.secondary = secondary;
+    }
+
+    public HybridCertificateBuilder(X500Name issuer, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
+        this(issuer, serial, notBefore, notAfter, subject, SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()), secondary);
+    }
+
+    public HybridCertificateBuilder(X500Principal issuer, BigInteger serial, Date notBefore, Date notAfter, X500Principal subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
+        this(X500Name.getInstance(issuer.getEncoded()), serial, notBefore, notAfter, X500Name.getInstance(subject.getEncoded()), SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()), secondary);
+    }
+
+    public HybridCertificateBuilder(X509Certificate issuerCert, BigInteger serial, Date notBefore, Date notAfter, X500Principal subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
+        this(issuerCert.getSubjectX500Principal(), serial, notBefore, notAfter, subject, publicKey, secondary);
+    }
+
+    public HybridCertificateBuilder(X509Certificate issuerCert, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
+        this(X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded()), serial, notBefore, notAfter, subject, publicKey, secondary);
     }
 
     /*public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary, int secondarySigSize) {
@@ -74,15 +88,15 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
      *
      * @param primary the content signer to be used to generate the signature validating the certificate
      * @param secondary the message signer to be used to generate the secondary (hybrid) signature
-     * @param secondarySigSize the signature of the secondary (hybrid) signature scheme (in bytes)
-     * @param secondaryAlgId the AlgId of the secondary (hybrid) signature scheme
      * @return a holder containing the resulting signed hybrid certificate
      */
-    public X509CertificateHolder buildHybrid(ContentSigner primary, MessageSigner secondary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
-        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondaryAlgId);
+    public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary) {
+        int secondarySigSize = secondary.getSignature().length;
+        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());
         byte[] bytes = null;
         try {
-            byte[] signature = secondary.generateSignature(tbs.toASN1Primitive().getEncoded());
+            secondary.getOutputStream().write(tbs.toASN1Primitive().getEncoded());
+            byte[] signature = secondary.getSignature();
             bytes = tbs.getEncoded();
             System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
             //addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));

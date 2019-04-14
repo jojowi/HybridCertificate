@@ -1,15 +1,15 @@
 package org.bouncycastle.asn1.x509;
 
 import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.util.ASN1Dump;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 
 public class HybridKey extends ASN1Object {
 
@@ -72,5 +72,24 @@ public class HybridKey extends ASN1Object {
         ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
         SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(octstr.getOctets());
         return new HybridKey(subjectPublicKeyInfo);
+    }
+
+    public static HybridKey fromCSR(PKCS10CertificationRequest csr) throws IOException {
+        org.bouncycastle.asn1.pkcs.Attribute[] attr = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        if (attr.length > 0) {
+            // System.out.println(Arrays.toString(attr[0].getAttributeValues()));
+            ASN1Encodable[] encodable = attr[0].getAttributeValues();
+            // System.out.println(encodable[0]);
+            Extensions ext = Extensions.getInstance(encodable[0]);
+
+            byte[] data = ext.getExtension(new ASN1ObjectIdentifier(OID)).getExtnValue().getEncoded();
+            ASN1InputStream input = new ASN1InputStream(data);
+            ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
+            SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(octstr.getOctets());
+            return new HybridKey(subjectPublicKeyInfo);
+
+        } else
+
+            return null;
     }
 }

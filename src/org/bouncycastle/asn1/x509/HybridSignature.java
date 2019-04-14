@@ -1,6 +1,9 @@
 package org.bouncycastle.asn1.x509;
 
 import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 
@@ -61,5 +64,26 @@ public class HybridSignature extends ASN1Object {
         AlgorithmIdentifier algId = AlgorithmIdentifier.getInstance(seq.getObjectAt(0));
         ASN1BitString sig = (ASN1BitString) seq.getObjectAt(1);
         return new HybridSignature(sig.getOctets(), algId);
+    }
+
+    public static HybridSignature fromCSR(PKCS10CertificationRequest csr) throws IOException {
+        org.bouncycastle.asn1.pkcs.Attribute[] attr = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        if (attr.length > 0) {
+            // System.out.println(Arrays.toString(attr[0].getAttributeValues()));
+            ASN1Encodable[] encodable = attr[0].getAttributeValues();
+            // System.out.println(encodable[0]);
+            Extensions ext = Extensions.getInstance(encodable[0]);
+
+            byte[] data = ext.getExtension(new ASN1ObjectIdentifier(OID)).getExtnValue().getEncoded();
+            ASN1InputStream input = new ASN1InputStream(data);
+            ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
+            ASN1Sequence seq = (ASN1Sequence) ASN1Sequence.fromByteArray(octstr.getOctets());
+            AlgorithmIdentifier algId = AlgorithmIdentifier.getInstance(seq.getObjectAt(0));
+            ASN1BitString sig = (ASN1BitString) seq.getObjectAt(1);
+            return new HybridSignature(sig.getOctets(), algId);
+
+        } else
+
+            return null;
     }
 }

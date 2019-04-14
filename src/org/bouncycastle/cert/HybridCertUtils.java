@@ -14,6 +14,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.bouncycastle.utils.ByteArrayUtils.replaceZeros;
+
 public class HybridCertUtils {
 
     @Deprecated
@@ -21,9 +23,9 @@ public class HybridCertUtils {
         byte[] base = cert.getTBSCertificate();
         Arrays.fill(base, base.length - HybridSignature.fromCert(cert).getSignature().length, base.length, (byte) 0);
         for(byte c : base) {
-            System.out.format("%h ", c);
+            //System.out.format("%h ", c);
         }
-        System.out.println();
+        //System.out.println();
         return base;
     }
 
@@ -37,20 +39,11 @@ public class HybridCertUtils {
         long start = System.nanoTime();
         byte[] base = cert.getTBSCertificate();
         byte[] signature = HybridSignature.fromCert(cert).getSignature();
-        List<Byte> baseList = new LinkedList<>();
-        for (byte b : base) {
-            baseList.add(b);
-        }
-        List<Byte> sigList = new LinkedList<>();
-        for (byte b : signature) {
-            sigList.add(b);
-        }
-        int index = Collections.indexOfSubList(baseList, sigList);
-        Arrays.fill(base, index, index + signature.length, (byte) 0);
+        replaceZeros(base, signature);
         long end = System.nanoTime();
         long diff = end - start;
-        System.out.println("Time: " + (diff / 1000000f));
-        System.out.println(Arrays.toString(base));
+        //System.out.println("Time: " + (diff / 1000000f));
+        //System.out.println(Arrays.toString(base));
         return base;
     }
 
