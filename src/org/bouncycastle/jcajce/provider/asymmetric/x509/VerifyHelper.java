@@ -9,6 +9,12 @@ import java.security.*;
 
 public class VerifyHelper {
 
+    /**
+     * Create a Signature object for the given algorithm identifier
+     *
+     * @param algId the algorithm identifier
+     * @return a signature object for the given algorithm
+     */
     public static Signature createSignature(AlgorithmIdentifier algId) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         String sigName = X509SignatureUtil.getSignatureName(algId);
         JcaJceHelper bcHelper = new BCJcaJceHelper();

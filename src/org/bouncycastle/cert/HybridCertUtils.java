@@ -9,10 +9,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.bouncycastle.utils.ByteArrayUtils.replaceZeros;
 
@@ -32,8 +28,8 @@ public class HybridCertUtils {
     /**
      * Extract the "base cert" from a hybrid certificate (the part over which the secondary signature was built)
      *
-     * @param cert
-     * @return
+     * @param cert the complete hybrid certificate
+     * @return the tbs-part for the secondary signature
      */
     public static byte[] extractBaseCertSearch(X509Certificate cert) throws IOException, CertificateEncodingException {
         long start = System.nanoTime();

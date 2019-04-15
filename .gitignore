@@ -110,3 +110,5 @@ hs_err_pid*
 *.key
 *.pem
 *.crt
+
+doc/

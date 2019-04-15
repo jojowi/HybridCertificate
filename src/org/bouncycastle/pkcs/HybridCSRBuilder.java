@@ -16,34 +16,77 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.security.PublicKey;
 
+/**
+ * Helper class for creating hybrid CSRs
+ */
 public class HybridCSRBuilder {
 
     private AsymmetricKeyParameter secondary;
     private PKCS10CertificationRequestBuilder builder;
     private ExtensionsGenerator extGen;
 
+    /**
+     * Create a builder for a hybrid CSR.
+     *
+     * @param subject the subject of the CSR
+     * @param publicKeyInfo the public key to be associated with this CSR
+     * @param secondary the secondary (hybrid) public key to be associated with this CSR
+     */
     public HybridCSRBuilder(X500Name subject, SubjectPublicKeyInfo publicKeyInfo, AsymmetricKeyParameter secondary) {
         this.builder = new PKCS10CertificationRequestBuilder(subject, publicKeyInfo);
         this.secondary = secondary;
         extGen = new ExtensionsGenerator();
     }
 
+    /**
+     * Create a builder for a hybrid CSR.
+     *
+     * @param subject the subject of the CSR
+     * @param primary the public key to be associated with this CSR
+     * @param secondary the secondary (hybrid) public key to be associated with this CSR
+     */
     public HybridCSRBuilder(X500Name subject, PublicKey primary, AsymmetricKeyParameter secondary) {
         this(subject, SubjectPublicKeyInfo.getInstance(primary.getEncoded()), secondary);
     }
 
+    /**
+     * Create a builder for a hybrid CSR.
+     *
+     * @param subject the subject of the CSR
+     * @param primary the public key to be associated with this CSR
+     * @param secondary the secondary (hybrid) public key to be associated with this CSR
+     */
     public HybridCSRBuilder(X500Principal subject, PublicKey primary, AsymmetricKeyParameter secondary) {
         this(X500Name.getInstance(subject.getEncoded()), SubjectPublicKeyInfo.getInstance(primary.getEncoded()), secondary);
     }
 
+    /**
+     * Adds an "extension-request" to the CSR. This means the CA is asked to include this extension into the certificate
+     *
+     * @param oid the object identifier of the extension
+     * @param isCritical whether the extension should be critical
+     * @param value the extension value
+     */
     public void addExtension(ASN1ObjectIdentifier oid, boolean isCritical, ASN1Encodable value) throws IOException {
         this.extGen.addExtension(oid, isCritical, value);
     }
 
+    /**
+     * Adds an "extension-request" to the CSR. This means the CA is asked to include this extension into the certificate
+     *
+     * @param extension the extension
+     */
     public void addExtension(Extension extension) {
         this.extGen.addExtension(extension);
     }
 
+    /**
+     * Adds an "extension-request" to the CSR. This means the CA is asked to include this extension into the certificate
+     *
+     * @param oid the object identifier of the extension
+     * @param isCritical whether the extension should be critical
+     * @param encodedValue the byte value of the extension
+     */
     public void addExtension(ASN1ObjectIdentifier oid, boolean isCritical, byte[] encodedValue) {
         this.extGen.addExtension(oid, isCritical, encodedValue);
     }
@@ -61,6 +104,13 @@ public class HybridCSRBuilder {
         return csr.toASN1Structure().getCertificationRequestInfo();
     }
 
+    /**
+     * Generate a hybrid CSR, based on the current issuer and subject using the passed in signer.
+     *
+     * @param primary the content signer to be used to generate the signature validating the certificate
+     * @param secondary the message signer to be used to generate the secondary (hybrid) signature
+     * @return the resulting, signed CSR
+     */
     public PKCS10CertificationRequest buildHybrid(ContentSigner primary, ContentSigner secondary) {
         int secondarySigSize = secondary.getSignature().length;
         CertificationRequestInfo tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());

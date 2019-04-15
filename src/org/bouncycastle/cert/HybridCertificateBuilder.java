@@ -14,13 +14,13 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 
 /**
- * Helper class to create hybrid certificates
+ * Helper class for creating hybrid certificates
  */
 public class HybridCertificateBuilder extends X509v3CertificateBuilder {
     private AsymmetricKeyParameter secondary;
 
     /**
-     * Create a builder for a version 3 certificate.
+     * Create a builder for a hybrid version 3 certificate.
      *
      * @param issuer the certificate issuer
      * @param serial the certificate serial number
@@ -35,18 +35,62 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         this.secondary = secondary;
     }
 
+    /**
+     * Create a builder for a hybrid version 3 certificate.
+     *
+     * @param issuer the certificate issuer
+     * @param serial the certificate serial number
+     * @param notBefore the date before which the certificate is not valid
+     * @param notAfter the date after which the certificate is not valid
+     * @param subject the certificate subject
+     * @param publicKey the public key to be associated with this certificate.
+     * @param secondary the second (hybrid) public key to be associated with this certificate
+     */
     public HybridCertificateBuilder(X500Name issuer, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
         this(issuer, serial, notBefore, notAfter, subject, SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()), secondary);
     }
 
+    /**
+     * Create a builder for a hybrid version 3 certificate.
+     *
+     * @param issuer the certificate issuer
+     * @param serial the certificate serial number
+     * @param notBefore the date before which the certificate is not valid
+     * @param notAfter the date after which the certificate is not valid
+     * @param subject the certificate subject
+     * @param publicKey the public key to be associated with this certificate.
+     * @param secondary the second (hybrid) public key to be associated with this certificate
+     */
     public HybridCertificateBuilder(X500Principal issuer, BigInteger serial, Date notBefore, Date notAfter, X500Principal subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
         this(X500Name.getInstance(issuer.getEncoded()), serial, notBefore, notAfter, X500Name.getInstance(subject.getEncoded()), SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()), secondary);
     }
 
+    /**
+     * Create a builder for a hybrid version 3 certificate.
+     *
+     * @param issuerCert the certificate of the issuer
+     * @param serial the certificate serial number
+     * @param notBefore the date before which the certificate is not valid
+     * @param notAfter the date after which the certificate is not valid
+     * @param subject the certificate subject
+     * @param publicKey the public key to be associated with this certificate.
+     * @param secondary the second (hybrid) public key to be associated with this certificate
+     */
     public HybridCertificateBuilder(X509Certificate issuerCert, BigInteger serial, Date notBefore, Date notAfter, X500Principal subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
         this(issuerCert.getSubjectX500Principal(), serial, notBefore, notAfter, subject, publicKey, secondary);
     }
 
+    /**
+     * Create a builder for a hybrid version 3 certificate.
+     *
+     * @param issuerCert the certificate of the issuer
+     * @param serial the certificate serial number
+     * @param notBefore the date before which the certificate is not valid
+     * @param notAfter the date after which the certificate is not valid
+     * @param subject the certificate subject
+     * @param publicKey the public key to be associated with this certificate.
+     * @param secondary the second (hybrid) public key to be associated with this certificate
+     */
     public HybridCertificateBuilder(X509Certificate issuerCert, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
         this(X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded()), serial, notBefore, notAfter, subject, publicKey, secondary);
     }
@@ -104,5 +148,10 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
             e.printStackTrace();
         }
         return CertUtils.generateFullCert(primary, TBSCertificate.getInstance(bytes));
+    }
+
+    @Override
+    public X509CertificateHolder build(ContentSigner primary) {
+        throw new UnsupportedOperationException();
     }
 }

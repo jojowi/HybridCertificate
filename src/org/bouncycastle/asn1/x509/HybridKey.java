@@ -74,6 +74,12 @@ public class HybridKey extends ASN1Object {
         return new HybridKey(subjectPublicKeyInfo);
     }
 
+    /**
+     * Extracts the HybridKey-Extension from a given CSR
+     *
+     * @param csr the CSR
+     * @return the HybridKey-Extension
+     */
     public static HybridKey fromCSR(PKCS10CertificationRequest csr) throws IOException {
         org.bouncycastle.asn1.pkcs.Attribute[] attr = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
         if (attr.length > 0) {

@@ -66,6 +66,12 @@ public class HybridSignature extends ASN1Object {
         return new HybridSignature(sig.getOctets(), algId);
     }
 
+    /**
+     * Extract the HybridSignature-Extension from a CSR
+     *
+     * @param csr the CSR
+     * @return the HybridSignature-Extension
+     */
     public static HybridSignature fromCSR(PKCS10CertificationRequest csr) throws IOException {
         org.bouncycastle.asn1.pkcs.Attribute[] attr = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
         if (attr.length > 0) {

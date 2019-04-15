@@ -6,12 +6,19 @@ import org.bouncycastle.operator.ContentSigner;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 
+/**
+ * A qTESLA content signer
+ */
 public class QTESLAContentSigner implements ContentSigner {
 
     private AlgorithmIdentifier algId;
     private ByteArrayOutputStream stream;
     private QTESLASigner signer;
 
+    /**
+     * Create a new qTESLA content singer
+     * @param privateKey the private key
+     */
     public QTESLAContentSigner(QTESLAPrivateKeyParameters privateKey) {
         algId = QTESLAUtils.getAlgorithmIdentifier(privateKey.getSecurityCategory());
         this.signer = new QTESLASigner();

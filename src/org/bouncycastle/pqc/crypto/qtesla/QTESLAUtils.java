@@ -3,11 +3,8 @@ package org.bouncycastle.pqc.crypto.qtesla;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 
 import java.io.*;
-import java.util.Arrays;
 
 public class QTESLAUtils {
 
@@ -15,23 +12,55 @@ public class QTESLAUtils {
     public static final String OID_HEURISTIC_III_SIZE = "1.3.6.1.4.1.311.89.2.2.2";
     public static final String OID_HEURISTIC_III_SPEED = "1.3.6.1.4.1.311.89.2.2.3";
 
+    /**
+     * Encode a qTESLA public key to asn1
+     *
+     * @param key the public key
+     * @return the key as asn1 primitive
+     */
     public static ASN1Primitive toASN1Primitive(QTESLAPublicKeyParameters key) {
         return new DERBitString(key.getPublicData());
     }
 
+    /**
+     * Encode a qTESLA private key to asn1
+     *
+     * @param key the private key
+     * @return the key as asn1 primitive
+     */
     public static ASN1Primitive toASN1Primitive(QTESLAPrivateKeyParameters key) {
         return new DERBitString(key.getSecret());
     }
 
+    /**
+     * Decode a qTESLA public key from asn1
+     *
+     * @param data the byte data of the key
+     * @param securityCategory the securityCategory of the key
+     * @return the public key
+     */
     public static QTESLAPublicKeyParameters fromASN1Primitive(byte[] data, int securityCategory) {
         return new QTESLAPublicKeyParameters(securityCategory, data);
     }
 
+    /**
+     * Decode a qTESLA private key from asn1
+     *
+     * @param data the byte data of the key
+     * @param securityCategory the securityCategory of the key
+     * @return the private key
+     */
     public static QTESLAPrivateKeyParameters fromASN1PrimitivePrivate(byte[] data, int securityCategory) throws IOException {
         ASN1BitString seq = (ASN1BitString) ASN1Primitive.fromByteArray(data);
         return new QTESLAPrivateKeyParameters(securityCategory, seq.getBytes());
     }
 
+    /**
+     * Extract a qTESLA public key from a SubjectPublicKeyInfo object
+     *
+     * @param key the SubjectPublicKeyInfo
+     * @return the public key
+     */
     public static QTESLAPublicKeyParameters fromSubjectPublicKeyInfo(SubjectPublicKeyInfo key) {
         try {
             byte[] data = key.getPublicKeyData().getEncoded();;
@@ -43,15 +72,23 @@ public class QTESLAUtils {
         }
     }
 
-    public static int getSignatureSize(int securityCategory) {
-        return QTESLASecurityCategory.getSignatureSize(securityCategory);
-    }
-
+    /**
+     * Check if the given AlgID is qTESLA
+     *
+     * @param algId the algorithm identifier
+     * @return true if the AlgID belongs to qTESLA, false otherwise
+     */
     public static boolean isQTESLA(AlgorithmIdentifier algId) {
         String oid = algId.getAlgorithm().getId();
         return oid.equals(OID_HEURISTIC_I) || oid.equals(OID_HEURISTIC_III_SIZE) || oid.equals(OID_HEURISTIC_III_SPEED);
     }
 
+    /**
+     * Get the qTESLA security category from a (qTESLA) AlgID
+     *
+     * @param algId the algorithm identifier
+     * @return the security category
+     */
     public static int getSecurityCategory(AlgorithmIdentifier algId) {
         switch (algId.getAlgorithm().getId()) {
             case OID_HEURISTIC_I:
@@ -65,6 +102,12 @@ public class QTESLAUtils {
         }
     }
 
+    /**
+     * Get the algorithm identifier for a qTESLA security category
+     *
+     * @param securityCategory the security category
+     * @return the OID of the algorithm identifier as string
+     */
     public static String getOID(int securityCategory) {
         switch (securityCategory) {
             case QTESLASecurityCategory.HEURISTIC_I:
@@ -78,6 +121,12 @@ public class QTESLAUtils {
         }
     }
 
+    /**
+     * Get the algorithm identifier for a qTESLA security category
+     *
+     * @param securityCategory the security category
+     * @return the algorithm identifier
+     */
     public static AlgorithmIdentifier getAlgorithmIdentifier(int securityCategory) {
         return new AlgorithmIdentifier(new ASN1ObjectIdentifier(getOID(securityCategory)));
     }
