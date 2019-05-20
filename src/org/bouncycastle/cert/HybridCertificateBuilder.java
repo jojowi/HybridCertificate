@@ -149,9 +149,4 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
         }
         return CertUtils.generateFullCert(primary, TBSCertificate.getInstance(bytes));
     }
-
-    @Override
-    public X509CertificateHolder build(ContentSigner primary) {
-        throw new UnsupportedOperationException();
-    }
 }

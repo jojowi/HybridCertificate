@@ -4,9 +4,7 @@ import org.bouncycastle.asn1.oiw.OIWObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.cert.HybridCertificateBuilder;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509ExtensionUtils;
+import org.bouncycastle.cert.*;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
@@ -23,7 +21,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
-import org.bouncycastle.cert.HybridCertUtils;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.HybridCSRBuilder;
 import org.bouncycastle.pkcs.HybridCSRUtils;
@@ -41,7 +38,10 @@ import java.util.*;
  * Example code for using the hybrid certificate functionality
  */
 public class Main {
+
     public static void main(String[]args) throws IOException, CertificateException, InvalidAlgorithmParameterException, CertPathValidatorException, OperatorCreationException {
+
+
 
 
         AsymmetricCipherKeyPair CA1sec = createQTESLAKeyPair("CA1");
@@ -50,7 +50,6 @@ public class Main {
         AsymmetricCipherKeyPair CA1 = createRSAKeyPair("CA1");
         AsymmetricCipherKeyPair CA2 = createRSAKeyPair("CA2");
         AsymmetricCipherKeyPair EE = createRSAKeyPair("EE");
-
         createCert("CA1", "CA1");
         createCert("CA2", "CA1");
         createCert("EE", "CA2");
@@ -93,7 +92,9 @@ public class Main {
         verify = new QTESLASigner();
         verify.init(false, EEsec.getPublic());
         System.out.println(verify.verifySignature(HybridCSRUtils.extractBaseCSRSearch(csr), HybridSignature.fromCSR(csr).getSignature()));
+
     }
+
 
     private static PublicKey getKeyFromCSR(PKCS10CertificationRequest csr) throws Exception {
         try {
