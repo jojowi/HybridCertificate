@@ -1,6 +1,8 @@
 package org.bouncycastle.cert;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
@@ -12,6 +14,7 @@ import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.Random;
 
 /**
  * Helper class for creating hybrid certificates
@@ -94,26 +97,6 @@ public class HybridCertificateBuilder extends X509v3CertificateBuilder {
     public HybridCertificateBuilder(X509Certificate issuerCert, BigInteger serial, Date notBefore, Date notAfter, X500Name subject, PublicKey publicKey, AsymmetricKeyParameter secondary) {
         this(X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded()), serial, notBefore, notAfter, subject, publicKey, secondary);
     }
-
-    /*public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary, int secondarySigSize) {
-        TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());
-        try {
-            byte[] signature = generateSig(secondary, tbs);
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature, secondarySigSize, secondary.getAlgorithmIdentifier()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return build(primary);
-    }*/
-
-    /*
-    private static byte[] generateSig(ContentSigner signer, ASN1Encodable tbsCert) throws IOException {
-        OutputStream out = signer.getOutputStream();
-        DEROutputStream derOut = new DEROutputStream(out);
-        derOut.writeObject(tbsCert);
-        out.close();
-        return signer.getSignature();
-    }*/
 
     private TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
         try {

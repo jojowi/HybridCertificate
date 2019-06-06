@@ -10,7 +10,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-import static org.bouncycastle.utils.ByteArrayUtils.replaceZeros;
+import static org.bouncycastle.utils.ByteArrayUtils.replaceWithZeros;
 
 public class HybridCertUtils {
 
@@ -35,7 +35,7 @@ public class HybridCertUtils {
         long start = System.nanoTime();
         byte[] base = cert.getTBSCertificate();
         byte[] signature = HybridSignature.fromCert(cert).getSignature();
-        replaceZeros(base, signature);
+        replaceWithZeros(base, signature);
         long end = System.nanoTime();
         long diff = end - start;
         //System.out.println("Time: " + (diff / 1000000f));

@@ -34,6 +34,8 @@ import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.util.*;
 
+import static org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils.*;
+
 /**
  * Example code for using the hybrid certificate functionality
  */
@@ -214,12 +216,11 @@ public class Main {
         try {
             File file = new File(name + "_public.key");
             FileOutputStream out = new FileOutputStream(file);
-            //out.write(QTESLAUtils.toASN1Primitive((QTESLAPublicKeyParameters) pair.getPublic()).getEncoded());
-            out.write(((QTESLAPublicKeyParameters)pair.getPublic()).getPublicData());
+            out.write(toASN1Primitive((QTESLAPublicKeyParameters) pair.getPublic()).getEncoded());
             out.close();
             file = new File(name + "_private.key");
             out = new FileOutputStream(file);
-            out.write(QTESLAUtils.toASN1Primitive((QTESLAPrivateKeyParameters) pair.getPrivate()).getEncoded());
+            out.write(toASN1Primitive((QTESLAPrivateKeyParameters) pair.getPrivate()).getEncoded());
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -231,11 +232,11 @@ public class Main {
         try {
             File file = new File(name + "_public.key");
             FileInputStream in = new FileInputStream(file);
-            QTESLAPublicKeyParameters pub = QTESLAUtils.fromASN1Primitive(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SPEED);
+            QTESLAPublicKeyParameters pub = fromASN1Primitive(in.readAllBytes());
             in.close();
             file = new File(name + "_private.key");
             in = new FileInputStream(file);
-            QTESLAPrivateKeyParameters priv = QTESLAUtils.fromASN1PrimitivePrivate(in.readAllBytes(), QTESLASecurityCategory.HEURISTIC_III_SPEED);
+            QTESLAPrivateKeyParameters priv = fromASN1PrimitivePrivate(in.readAllBytes());
             in.close();
             return new AsymmetricCipherKeyPair(pub, priv);
         } catch (IOException e) {
@@ -273,7 +274,7 @@ public class Main {
             calendar.add(Calendar.MONTH, 12);
             Date expiryDate = calendar.getTime(); // time after which certificate is not valid
 
-            BigInteger serialNumber = new BigInteger("1"); // serial number for certificate
+            BigInteger serialNumber = new BigInteger("1234"); // serial number for certificate
 
             X500Name subjectName = new X500Name("CN=" + subject + ", C=DE");
             X500Name issuerName = new X500Name("CN=" + issuer + ", C=DE");

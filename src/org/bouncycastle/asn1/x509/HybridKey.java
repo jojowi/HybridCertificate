@@ -11,6 +11,10 @@ import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 
+/**
+ * A X509-Extension which contains a secondary public key which is bound to the subject of the certificate.
+ * Typically this secondary key will belong to a post-quantum crypto scheme
+ */
 public class HybridKey extends ASN1Object {
 
     public static final String OID = "2.5.29.211";
@@ -44,7 +48,7 @@ public class HybridKey extends ASN1Object {
     }
 
     /**
-     * Query the public key from the extension
+     * Extract the public key from the extension
      *
      * @return the public key
      */
@@ -54,8 +58,7 @@ public class HybridKey extends ASN1Object {
 
     private static SubjectPublicKeyInfo createSubjectPublicKeyInfo(AsymmetricKeyParameter publicKey) throws IOException {
         if (publicKey instanceof QTESLAPublicKeyParameters) {
-            AlgorithmIdentifier algId = QTESLAUtils.getAlgorithmIdentifier(((QTESLAPublicKeyParameters) publicKey).getSecurityCategory());
-            return new SubjectPublicKeyInfo(algId, ((QTESLAPublicKeyParameters) publicKey).getPublicData());
+            return QTESLAUtils.toSubjectPublicKeyInfo((QTESLAPublicKeyParameters) publicKey);
         } else
         return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
     }

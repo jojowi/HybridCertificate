@@ -3,8 +3,6 @@ package org.bouncycastle.jcajce.provider.asymmetric.rsa;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
-import org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPrivateCrtKey;
-import org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPublicKey;
 
 import java.security.*;
 import java.security.interfaces.RSAPrivateCrtKey;

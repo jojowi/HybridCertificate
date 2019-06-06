@@ -7,7 +7,13 @@ import java.util.List;
 
 public class ByteArrayUtils {
 
-    public static void replaceZeros(byte[] base, byte[] replace) {
+    /**
+     * Replaces a part in a base byte array with zero-bytes
+     *
+     * @param base the base array
+     * @param replace the part of the base array to replace with zero-bytes
+     */
+    public static void replaceWithZeros(byte[] base, byte[] replace) {
         List<Byte> baseList = new LinkedList<>();
         for (byte b : base) {
             baseList.add(b);

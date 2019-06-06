@@ -1,39 +1,33 @@
-package org.bouncycastle.cert.path.validations;
+package org.bouncycastle.jce.provider;
 
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.HybridKey;
 import org.bouncycastle.asn1.x509.HybridSignature;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.HybridCertUtils;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.path.CertPathValidation;
-import org.bouncycastle.cert.path.CertPathValidationContext;
-import org.bouncycastle.cert.path.CertPathValidationException;
 import org.bouncycastle.jcajce.provider.asymmetric.x509.VerifyHelper;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLASigner;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
-import org.bouncycastle.util.Memoable;
 
 import java.io.IOException;
 import java.security.*;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
+import java.security.cert.*;
+import java.security.cert.Certificate;
+import java.util.List;
 
-public class HybridValidation implements CertPathValidation {
+public class HybridValidation {
     private SubjectPublicKeyInfo hybridPublicKey;
 
-    @Override
-    public void validate(CertPathValidationContext certPathValidationContext, X509CertificateHolder x509CertificateHolder) throws CertPathValidationException {
-        X509Certificate cert = null;
-        try {
-            cert = new JcaX509CertificateConverter().getCertificate(x509CertificateHolder);
-        } catch (CertificateException e) {
-            e.printStackTrace();
+    public void validate(CertPath certPath) throws CertPathValidatorException {
+        List<? extends Certificate> certificates = certPath.getCertificates();
+        for(int j = certificates.size() - 1; j >= 0; --j) {
+            validateCert(certificates.get(j));
         }
+    }
+
+    private void validateCert(Certificate certificate) throws CertPathValidatorException {
+        X509Certificate cert = (X509Certificate) certificate;
         if (this.hybridPublicKey == null) {
             try {
                 this.hybridPublicKey = HybridKey.fromCert(cert).getKey();
@@ -63,7 +57,7 @@ public class HybridValidation implements CertPathValidation {
             }
         }
         if (!verify) {
-            throw new CertPathValidationException("Unable to validate signature");
+            throw new CertPathValidatorException("Unable to validate signature");
         }
 
         try {
@@ -80,18 +74,5 @@ public class HybridValidation implements CertPathValidation {
             e.printStackTrace();
         }
         return null;
-    }
-
-    @Override
-    public Memoable copy() {
-        HybridValidation val = new HybridValidation();
-        val.hybridPublicKey = hybridPublicKey;
-        return val;
-    }
-
-    @Override
-    public void reset(Memoable memoable) {
-        HybridValidation val = (HybridValidation) memoable;
-        hybridPublicKey = val.hybridPublicKey;
     }
 }

@@ -7,6 +7,11 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 
+/**
+ * A X509-Extension which contains a secondary signature, which provides an additional binding between
+ * the certificate subject and the key(s)
+ * Typically this secondary signature will belong to a post-quantum crypto scheme
+ */
 public class HybridSignature extends ASN1Object {
 
     public static final String OID = "2.5.29.212";
