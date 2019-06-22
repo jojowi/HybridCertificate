@@ -17,6 +17,8 @@ public class QTESLAUtils {
     private static final String OID_HEURISTIC_I = "1.3.6.1.4.1.311.89.2.2.1";
     private static final String OID_HEURISTIC_III_SIZE = "1.3.6.1.4.1.311.89.2.2.2";
     private static final String OID_HEURISTIC_III_SPEED = "1.3.6.1.4.1.311.89.2.2.3";
+    private static final String OID_PROVABLY_SECURE_I = "1.3.6.1.4.1.311.89.2.2.4";
+    private static final String OID_PROVABLY_SECURE_III = "1.3.6.1.4.1.311.89.2.2.5";
 
 
 
@@ -61,6 +63,10 @@ public class QTESLAUtils {
                 return QTESLASecurityCategory.HEURISTIC_III_SIZE;
             case OID_HEURISTIC_III_SPEED:
                 return QTESLASecurityCategory.HEURISTIC_III_SPEED;
+            case OID_PROVABLY_SECURE_I:
+                return QTESLASecurityCategory.PROVABLY_SECURE_I;
+            case OID_PROVABLY_SECURE_III:
+                return QTESLASecurityCategory.PROVABLY_SECURE_III;
             default:
                 return -1;
         }
@@ -80,6 +86,10 @@ public class QTESLAUtils {
                 return OID_HEURISTIC_III_SIZE;
             case QTESLASecurityCategory.HEURISTIC_III_SPEED:
                 return OID_HEURISTIC_III_SPEED;
+            case QTESLASecurityCategory.PROVABLY_SECURE_I:
+                return OID_PROVABLY_SECURE_I;
+            case QTESLASecurityCategory.PROVABLY_SECURE_III:
+                return OID_PROVABLY_SECURE_III;
             default:
                 return "";
         }
