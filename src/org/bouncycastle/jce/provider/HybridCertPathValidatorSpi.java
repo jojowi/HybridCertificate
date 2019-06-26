@@ -22,8 +22,8 @@ public class HybridCertPathValidatorSpi extends PKIXCertPathValidatorSpi {
         }
         try {
             X509Certificate cert = (X509Certificate) certPath.getCertificates().get(0);
-            SubjectPublicKeyInfo hyridKey = HybridKey.fromCert(cert).getKey();
-            return new HybridCertPathValidatorResult(result, QTESLAUtils.fromSubjectPublicKeyInfo(hyridKey), true);
+            SubjectPublicKeyInfo hybridKey = HybridKey.fromCert(cert).getKey();
+            return new HybridCertPathValidatorResult(result, QTESLAUtils.fromSubjectPublicKeyInfo(hybridKey), true);
         } catch (IOException e) {
             throw new CertPathValidatorException(e.getMessage());
         }

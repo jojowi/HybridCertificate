@@ -19,7 +19,7 @@ import java.util.List;
 public class HybridValidation {
     private SubjectPublicKeyInfo hybridPublicKey;
 
-    public void validate(CertPath certPath) throws CertPathValidatorException {
+    void validate(CertPath certPath) throws CertPathValidatorException {
         List<? extends Certificate> certificates = certPath.getCertificates();
         for(int j = certificates.size() - 1; j >= 0; --j) {
             validateCert(certificates.get(j));
