@@ -22,10 +22,20 @@ public class HybridCertPathValidatorResult extends PKIXCertPathValidatorResult {
         this(result.getTrustAnchor(), result.getPolicyTree(), result.getPublicKey(), hybridKey, hybridChainValidated);
     }
 
+    /**
+     * Returns the secondary key from the last certificate of the chain. Can be null (even if the hybrid validation was successful) if the last certificate is a partly hybrid certificate
+     * and does not contain a secondary key.
+     *
+     * @return The secondary public key from the end entity certificate
+     */
     public AsymmetricKeyParameter getHybridKey() {
         return hybridKey;
     }
 
+    /**
+     *
+     * @return whether the chain of secondary signatures could be validated successfully
+     */
     public boolean isHybridChainValidated() {
         return hybridChainValidated;
     }

@@ -16,21 +16,24 @@ import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.util.List;
 
-public class HybridValidation {
+class HybridValidation {
     private SubjectPublicKeyInfo hybridPublicKey;
 
     void validate(CertPath certPath) throws CertPathValidatorException {
         List<? extends Certificate> certificates = certPath.getCertificates();
         for(int j = certificates.size() - 1; j >= 0; --j) {
-            validateCert(certificates.get(j));
+            validateCert(certificates.get(j), j == certificates.size() - 1, j == 0);
         }
     }
 
-    private void validateCert(Certificate certificate) throws CertPathValidatorException {
+    private void validateCert(Certificate certificate, boolean first, boolean last) throws CertPathValidatorException {
         X509Certificate cert = (X509Certificate) certificate;
-        if (this.hybridPublicKey == null) {
+        if (first) {
             try {
-                this.hybridPublicKey = HybridKey.fromCert(cert).getKey();
+                if (cert.getNonCriticalExtensionOIDs().contains(HybridKey.OID))
+                    this.hybridPublicKey = HybridKey.fromCert(cert).getKey();
+                else
+                    throw new CertPathValidatorException("Cert does not contain secondary key");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -60,10 +63,15 @@ public class HybridValidation {
             throw new CertPathValidatorException("Unable to validate signature");
         }
 
-        try {
-            this.hybridPublicKey = HybridKey.fromCert(cert).getKey();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!last) {
+            try {
+                if (cert.getNonCriticalExtensionOIDs().contains(HybridKey.OID))
+                    this.hybridPublicKey = HybridKey.fromCert(cert).getKey();
+                else
+                    throw new CertPathValidatorException("Cert does not contain secondary key");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
