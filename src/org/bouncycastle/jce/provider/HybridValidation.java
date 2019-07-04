@@ -19,7 +19,7 @@ import java.util.List;
 public class HybridValidation {
     private SubjectPublicKeyInfo hybridPublicKey;
 
-    void validate(CertPath certPath) throws CertPathValidatorException {
+    public void validate(CertPath certPath) throws CertPathValidatorException {
         List<? extends Certificate> certificates = certPath.getCertificates();
         for(int j = certificates.size() - 1; j >= 0; --j) {
             validateCert(certificates.get(j));
@@ -48,16 +48,22 @@ public class HybridValidation {
         } else {
             try {
                 JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
-                Signature signature = VerifyHelper.createSignature(algId);
-                signature.initVerify(converter.getPublicKey(hybridPublicKey));
-                signature.update(HybridCertUtils.extractBaseCertSearch(cert));
-                verify = signature.verify(HybridSignature.fromCert(cert).getSignature());
-            } catch (NoSuchAlgorithmException | IOException | SignatureException | InvalidKeyException | CertificateEncodingException e) {
+                try {
+                    Signature signature = VerifyHelper.createSignature(algId);
+                    signature.initVerify(converter.getPublicKey(hybridPublicKey));
+                    signature.update(HybridCertUtils.extractBaseCertSearch(cert));
+                    verify = signature.verify(HybridSignature.fromCert(cert).getSignature());
+                } catch (NoSuchAlgorithmException ex) {
+                    QTESLASigner verifier = new QTESLASigner();
+                    verifier.init(false, QTESLAUtils.fromSubjectPublicKeyInfo(hybridPublicKey));
+                    verify = verifier.verifySignature(HybridCertUtils.extractBaseCertSearch(cert), HybridSignature.fromCert(cert).getSignature());
+                }
+            } catch (IOException | SignatureException | InvalidKeyException | CertificateEncodingException e) {
                 e.printStackTrace();
             }
         }
         if (!verify) {
-            throw new CertPathValidatorException("Unable to validate signature");
+            throw new CertPathValidatorException("Unable to validate signature for subject " + cert.getSubjectDN().getName());
         }
 
         try {
