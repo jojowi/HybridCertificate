@@ -2,6 +2,7 @@ package org.bouncycastle.jce.provider;
 
 import org.bouncycastle.asn1.x509.HybridKey;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
 
 import java.io.IOException;
@@ -23,7 +24,17 @@ public class HybridCertPathValidatorSpi extends PKIXCertPathValidatorSpi {
         try {
             X509Certificate cert = (X509Certificate) certPath.getCertificates().get(0);
             SubjectPublicKeyInfo hybridKey = HybridKey.fromCert(cert).getKey();
-            return new HybridCertPathValidatorResult(result, QTESLAUtils.fromSubjectPublicKeyInfo(hybridKey), true);
+            AsymmetricKeyParameter key;
+            if (QTESLAUtils.isQTESLA(hybridKey.getAlgorithm()))
+                key = QTESLAUtils.fromSubjectPublicKeyInfo(hybridKey);
+            else {
+                try {
+                    key = org.bouncycastle.pqc.crypto.util.PublicKeyFactory.createKey(hybridKey);
+                } catch(IOException ex) {
+                    key = org.bouncycastle.crypto.util.PublicKeyFactory.createKey(hybridKey);
+                }
+            }
+            return new HybridCertPathValidatorResult(result, key, true);
         } catch (IOException e) {
             throw new CertPathValidatorException(e.getMessage());
         }

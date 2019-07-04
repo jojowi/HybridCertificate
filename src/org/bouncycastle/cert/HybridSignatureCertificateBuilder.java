@@ -119,7 +119,6 @@ public class HybridSignatureCertificateBuilder extends X509v3CertificateBuilder 
             byte[] signature = secondary.getSignature();
             bytes = tbs.getEncoded();
             System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
-            //addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -26,5 +26,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="bcpkix-jdk15on-162" level="project" />
   </component>
 </module>

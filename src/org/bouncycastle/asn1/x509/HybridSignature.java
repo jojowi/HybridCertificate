@@ -94,7 +94,6 @@ public class HybridSignature extends ASN1Object {
             return new HybridSignature(sig.getOctets(), algId);
 
         } else
-
-            return null;
+            throw new IOException("no HybridSignatur extension request");
     }
 }

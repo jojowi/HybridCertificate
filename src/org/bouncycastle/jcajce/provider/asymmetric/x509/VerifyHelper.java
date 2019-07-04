@@ -15,15 +15,10 @@ public class VerifyHelper {
      * @param algId the algorithm identifier
      * @return a signature object for the given algorithm
      */
-    public static Signature createSignature(AlgorithmIdentifier algId) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
+    public static Signature createSignature(AlgorithmIdentifier algId) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         String sigName = X509SignatureUtil.getSignatureName(algId);
         JcaJceHelper bcHelper = new BCJcaJceHelper();
-        Signature signature;
-        try {
-            signature = bcHelper.createSignature(sigName);
-        } catch (Exception var5) {
-            signature = Signature.getInstance(sigName);
-        }
+        Signature signature = bcHelper.createSignature(sigName);
         ASN1Encodable params = algId.getParameters();
         X509SignatureUtil.setSignatureParameters(signature, params);
         return signature;

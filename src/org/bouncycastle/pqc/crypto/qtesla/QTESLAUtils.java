@@ -3,6 +3,7 @@ package org.bouncycastle.pqc.crypto.qtesla;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.pqc.asn1.PQCObjectIdentifiers;
 
 import java.io.IOException;
 
@@ -46,7 +47,30 @@ public class QTESLAUtils {
      */
     public static boolean isQTESLA(AlgorithmIdentifier algId) {
         String oid = algId.getAlgorithm().getId();
-        return oid.equals(OID_HEURISTIC_I) || oid.equals(OID_HEURISTIC_III_SIZE) || oid.equals(OID_HEURISTIC_III_SPEED);
+        return oid.equals(OID_HEURISTIC_I) || oid.equals(OID_HEURISTIC_III_SIZE) || oid.equals(OID_HEURISTIC_III_SPEED) || oid.equals(OID_PROVABLY_SECURE_I) || oid.equals(OID_PROVABLY_SECURE_III);
+    }
+
+    public static AlgorithmIdentifier toBCOID(AlgorithmIdentifier algorithmIdentifier) {
+        ASN1ObjectIdentifier oid;
+        switch(algorithmIdentifier.getAlgorithm().getId()) {
+            case OID_HEURISTIC_I:
+                oid = PQCObjectIdentifiers.qTESLA_I;
+                break;
+            case OID_HEURISTIC_III_SIZE:
+                oid = PQCObjectIdentifiers.qTESLA_III_size;
+                break;
+            case OID_HEURISTIC_III_SPEED:
+                oid = PQCObjectIdentifiers.qTESLA_III_speed;
+                break;
+            case OID_PROVABLY_SECURE_I:
+                oid = PQCObjectIdentifiers.qTESLA_p_I;
+                break;
+            case OID_PROVABLY_SECURE_III:
+                oid = PQCObjectIdentifiers.qTESLA_p_III;
+                break;
+            default: throw new RuntimeException("no qTESLA OID");
+        }
+        return new AlgorithmIdentifier(oid);
     }
 
     /**

@@ -59,8 +59,13 @@ public class HybridKey extends ASN1Object {
     private static SubjectPublicKeyInfo createSubjectPublicKeyInfo(AsymmetricKeyParameter publicKey) throws IOException {
         if (publicKey instanceof QTESLAPublicKeyParameters) {
             return QTESLAUtils.toSubjectPublicKeyInfo((QTESLAPublicKeyParameters) publicKey);
-        } else
-        return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
+        } else {
+            try {
+                return org.bouncycastle.pqc.crypto.util.SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
+            } catch(IOException ex) {
+                return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(publicKey);
+            }
+        }
     }
 
     /**
@@ -86,9 +91,7 @@ public class HybridKey extends ASN1Object {
     public static HybridKey fromCSR(PKCS10CertificationRequest csr) throws IOException {
         org.bouncycastle.asn1.pkcs.Attribute[] attr = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
         if (attr.length > 0) {
-            // System.out.println(Arrays.toString(attr[0].getAttributeValues()));
             ASN1Encodable[] encodable = attr[0].getAttributeValues();
-            // System.out.println(encodable[0]);
             Extensions ext = Extensions.getInstance(encodable[0]);
 
             byte[] data = ext.getExtension(new ASN1ObjectIdentifier(OID)).getExtnValue().getEncoded();
@@ -99,6 +102,6 @@ public class HybridKey extends ASN1Object {
 
         } else
 
-            return null;
+            throw new IOException("no HybridKey extension request");
     }
 }
