@@ -7,6 +7,9 @@ import org.bouncycastle.pqc.crypto.qtesla.QTESLAUtils;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.security.cert.*;
 
 public class HybridCertPathValidatorSpi extends PKIXCertPathValidatorSpi {
@@ -18,23 +21,28 @@ public class HybridCertPathValidatorSpi extends PKIXCertPathValidatorSpi {
         HybridValidation hybridValidation = new HybridValidation();
         try {
             hybridValidation.validate(certPath);
-        } catch (CertPathValidatorException exception) {
+        } catch (CertPathValidatorException | CertificateEncodingException | SignatureException | NoSuchAlgorithmException | InvalidKeyException | IOException exception) {
             return new HybridCertPathValidatorResult(result, null, false);
         }
         try {
             X509Certificate cert = (X509Certificate) certPath.getCertificates().get(0);
-            SubjectPublicKeyInfo hybridKey = HybridKey.fromCert(cert).getKey();
-            AsymmetricKeyParameter key;
-            if (QTESLAUtils.isQTESLA(hybridKey.getAlgorithm()))
-                key = QTESLAUtils.fromSubjectPublicKeyInfo(hybridKey);
-            else {
-                try {
-                    key = org.bouncycastle.pqc.crypto.util.PublicKeyFactory.createKey(hybridKey);
-                } catch(IOException ex) {
-                    key = org.bouncycastle.crypto.util.PublicKeyFactory.createKey(hybridKey);
+
+            if (cert.getNonCriticalExtensionOIDs().contains(HybridKey.OID)) {
+                SubjectPublicKeyInfo hybridKey = HybridKey.fromCert(cert).getKey();
+                AsymmetricKeyParameter key;
+                if (QTESLAUtils.isQTESLA(hybridKey.getAlgorithm()))
+                    key = QTESLAUtils.fromSubjectPublicKeyInfo(hybridKey);
+                else {
+                    try {
+                        key = org.bouncycastle.pqc.crypto.util.PublicKeyFactory.createKey(hybridKey);
+                    } catch (IOException ex) {
+                        key = org.bouncycastle.crypto.util.PublicKeyFactory.createKey(hybridKey);
+                    }
                 }
+                return new HybridCertPathValidatorResult(result, key, true);
             }
-            return new HybridCertPathValidatorResult(result, key, true);
+            else
+                return new HybridCertPathValidatorResult(result, null, true);
         } catch (IOException e) {
             throw new CertPathValidatorException(e.getMessage());
         }

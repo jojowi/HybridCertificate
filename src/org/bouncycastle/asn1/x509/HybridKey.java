@@ -25,12 +25,8 @@ public class HybridKey extends ASN1Object {
      *
      * @param key the public key
      */
-    public HybridKey(AsymmetricKeyParameter key) {
-        try {
-            this.key = createSubjectPublicKeyInfo(key);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public HybridKey(AsymmetricKeyParameter key) throws IOException {
+        this.key = createSubjectPublicKeyInfo(key);
     }
 
     /**
@@ -93,15 +89,11 @@ public class HybridKey extends ASN1Object {
         if (attr.length > 0) {
             ASN1Encodable[] encodable = attr[0].getAttributeValues();
             Extensions ext = Extensions.getInstance(encodable[0]);
-
             byte[] data = ext.getExtension(new ASN1ObjectIdentifier(OID)).getExtnValue().getEncoded();
             ASN1InputStream input = new ASN1InputStream(data);
             ASN1OctetString octstr = ASN1OctetString.getInstance(input.readObject());
             SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(octstr.getOctets());
             return new HybridKey(subjectPublicKeyInfo);
-
-        } else
-
-            throw new IOException("no HybridKey extension request");
+        } else throw new IOException("no HybridKey extension request");
     }
 }

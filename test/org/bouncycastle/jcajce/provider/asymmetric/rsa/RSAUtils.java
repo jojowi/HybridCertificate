@@ -5,8 +5,6 @@ import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
 
 import java.security.*;
-import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.interfaces.RSAPublicKey;
 
 public class RSAUtils {
 
@@ -14,21 +12,5 @@ public class RSAUtils {
         RSAKeyParameters pub = (RSAKeyParameters)pair.getPublic();
         RSAPrivateCrtKeyParameters priv = (RSAPrivateCrtKeyParameters)pair.getPrivate();
         return new KeyPair(new BCRSAPublicKey(pub), new BCRSAPrivateCrtKey(priv));
-    }
-
-    public static AsymmetricCipherKeyPair fromKeyPair(KeyPair pair) {
-        RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
-        RSAPrivateCrtKey privateKey = (RSAPrivateCrtKey) pair.getPrivate();
-        RSAKeyParameters pub = new RSAKeyParameters(false, publicKey.getModulus(), publicKey.getPublicExponent());
-        RSAPrivateCrtKeyParameters priv = new RSAPrivateCrtKeyParameters(
-                privateKey.getModulus(),
-                privateKey.getPublicExponent(),
-                privateKey.getPrivateExponent(),
-                privateKey.getPrimeP(),
-                privateKey.getPrimeQ(),
-                privateKey.getPrimeExponentP(),
-                privateKey.getPrimeExponentQ(),
-                privateKey.getCrtCoefficient());
-        return new AsymmetricCipherKeyPair(pub, priv);
     }
 }

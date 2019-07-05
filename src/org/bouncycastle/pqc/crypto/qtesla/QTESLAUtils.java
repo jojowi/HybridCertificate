@@ -4,6 +4,7 @@ import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.pqc.asn1.PQCObjectIdentifiers;
+import org.bouncycastle.pqc.crypto.util.SubjectPublicKeyInfoFactory;
 
 import java.io.IOException;
 
@@ -73,6 +74,10 @@ public class QTESLAUtils {
         return new AlgorithmIdentifier(oid);
     }
 
+    public static SubjectPublicKeyInfo toBCSPKI(SubjectPublicKeyInfo spki) throws IOException {
+        return SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(fromSubjectPublicKeyInfo(spki));
+    }
+
     /**
      * Get the qTESLA security category from a (qTESLA) AlgID
      *
@@ -127,58 +132,6 @@ public class QTESLAUtils {
      */
     public static AlgorithmIdentifier getAlgorithmIdentifier(int securityCategory) {
         return new AlgorithmIdentifier(new ASN1ObjectIdentifier(getOID(securityCategory)));
-    }
-
-    /**
-     * Encode a qTESLA public key to asn1
-     *
-     * @param key the qTESLA public key
-     * @return the key as asn1 primitive
-     */
-    public static ASN1Primitive toASN1Primitive(QTESLAPublicKeyParameters key) {
-        ASN1EncodableVector v = new ASN1EncodableVector();
-        v.add(getAlgorithmIdentifier(key.getSecurityCategory()));
-        v.add(new DERBitString(key.getPublicData()));
-        return new DERSequence(v);
-    }
-
-    /**
-     * Encode a qTESLA private key to asn1
-     *
-     * @param key the qTESLA private key
-     * @return the key as asn1 primitive
-     */
-    public static ASN1Primitive toASN1Primitive(QTESLAPrivateKeyParameters key) {
-        ASN1EncodableVector v = new ASN1EncodableVector();
-        v.add(getAlgorithmIdentifier(key.getSecurityCategory()));
-        v.add(new DERBitString(key.getSecret()));
-        return new DERSequence(v);
-    }
-
-    /**
-     * Decode a qTESLA public key from asn1
-     *
-     * @param data the byte data (asn1) of the key
-     * @return the public key
-     */
-    public static QTESLAPublicKeyParameters fromASN1Primitive(byte[] data) throws IOException {
-        ASN1Sequence seq = (ASN1Sequence) ASN1Sequence.fromByteArray(data);
-        AlgorithmIdentifier algorithmIdentifier = AlgorithmIdentifier.getInstance(seq.getObjectAt(0));
-        ASN1BitString key = (ASN1BitString) seq.getObjectAt(1);
-        return new QTESLAPublicKeyParameters(getSecurityCategory(algorithmIdentifier), key.getOctets());
-    }
-
-    /**
-     * Decode a qTESLA private key from asn1
-     *
-     * @param data the byte data of the key
-     * @return the private key
-     */
-    public static QTESLAPrivateKeyParameters fromASN1PrimitivePrivate(byte[] data) throws IOException {
-        ASN1Sequence seq = (ASN1Sequence) ASN1Sequence.fromByteArray(data);
-        AlgorithmIdentifier algorithmIdentifier = AlgorithmIdentifier.getInstance(seq.getObjectAt(0));
-        ASN1BitString key = (ASN1BitString) seq.getObjectAt(1);
-        return new QTESLAPrivateKeyParameters(getSecurityCategory(algorithmIdentifier), key.getOctets());
     }
 
 }

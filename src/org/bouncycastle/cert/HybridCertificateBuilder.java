@@ -7,6 +7,7 @@ import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.operator.ContentSigner;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -95,12 +96,8 @@ public class HybridCertificateBuilder extends HybridSignatureCertificateBuilder 
     }
 
     @Override
-    protected TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
+    protected TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) throws IOException {
+        addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
         return super.prepareForHybrid(primary, secondarySigSize, secondaryAlgId);
     }
 

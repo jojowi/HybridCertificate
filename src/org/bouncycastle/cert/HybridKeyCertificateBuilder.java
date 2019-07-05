@@ -7,6 +7,7 @@ import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.operator.ContentSigner;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -94,18 +95,6 @@ public class HybridKeyCertificateBuilder extends X509v3CertificateBuilder {
         this(X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded()), serial, notBefore, notAfter, subject, publicKey, secondary);
     }
 
-    private TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-            byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
-        X509CertificateHolder cert = super.build(primary);
-        return cert.toASN1Structure().getTBSCertificate();
-    }
-
     @Override
     public X509CertificateHolder build(ContentSigner primary) {
         throw new UnsupportedOperationException();
@@ -117,12 +106,8 @@ public class HybridKeyCertificateBuilder extends X509v3CertificateBuilder {
      * @param primary the content signer to be used to generate the signature validating the certificate
      * @return a holder containing the resulting signed hybrid-key certificate
      */
-    public X509CertificateHolder buildHybrid(ContentSigner primary) {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
+    public X509CertificateHolder buildHybrid(ContentSigner primary) throws IOException {
+        addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
         return super.build(primary);
     }
 }

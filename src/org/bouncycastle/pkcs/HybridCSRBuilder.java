@@ -91,14 +91,10 @@ public class HybridCSRBuilder {
         this.extGen.addExtension(oid, isCritical, encodedValue);
     }
 
-    private CertificationRequestInfo prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
-        try {
-            addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
-            byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private CertificationRequestInfo prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) throws IOException {
+        addExtension(new ASN1ObjectIdentifier(HybridKey.OID), false, new HybridKey(this.secondary));
+        byte[] zeros = new byte[secondarySigSize];
+        addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
         builder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
         PKCS10CertificationRequest csr = builder.build(primary);
         return csr.toASN1Structure().getCertificationRequestInfo();
@@ -111,27 +107,17 @@ public class HybridCSRBuilder {
      * @param secondary the message signer to be used to generate the secondary (hybrid) signature
      * @return the resulting, signed CSR
      */
-    public PKCS10CertificationRequest buildHybrid(ContentSigner primary, ContentSigner secondary) {
+    public PKCS10CertificationRequest buildHybrid(ContentSigner primary, ContentSigner secondary) throws IOException {
         int secondarySigSize = secondary.getSignature().length;
         CertificationRequestInfo tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());
-        byte[] bytes = null;
-        try {
-            secondary.getOutputStream().write(tbs.toASN1Primitive().getEncoded());
-            byte[] signature = secondary.getSignature();
-            bytes = tbs.getEncoded();
-            System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
-            //addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(signature));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        secondary.getOutputStream().write(tbs.toASN1Primitive().getEncoded());
+        byte[] signature = secondary.getSignature();
+        byte[] bytes = tbs.getEncoded();
+        System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
         CertificationRequestInfo info = CertificationRequestInfo.getInstance(bytes);
         OutputStream sOut = primary.getOutputStream();
-        try {
-            sOut.write(info.getEncoded("DER"));
-            sOut.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        sOut.write(info.getEncoded("DER"));
+        sOut.close();
         return new PKCS10CertificationRequest(new CertificationRequest(info, primary.getAlgorithmIdentifier(), new DERBitString(primary.getSignature())));
     }
 }

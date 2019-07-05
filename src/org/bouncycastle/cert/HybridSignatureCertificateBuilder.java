@@ -87,13 +87,9 @@ public class HybridSignatureCertificateBuilder extends X509v3CertificateBuilder 
         this(X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded()), serial, notBefore, notAfter, subject, publicKey);
     }
 
-    protected TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) {
-        try {
-            byte[] zeros = new byte[secondarySigSize];
-            addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
-        } catch (CertIOException e) {
-            e.printStackTrace();
-        }
+    protected TBSCertificate prepareForHybrid(ContentSigner primary, int secondarySigSize, AlgorithmIdentifier secondaryAlgId) throws IOException {
+        byte[] zeros = new byte[secondarySigSize];
+        addExtension(new ASN1ObjectIdentifier(HybridSignature.OID), false, new HybridSignature(zeros, secondaryAlgId));
         X509CertificateHolder cert = super.build(primary);
         return cert.toASN1Structure().getTBSCertificate();
     }
@@ -110,18 +106,14 @@ public class HybridSignatureCertificateBuilder extends X509v3CertificateBuilder 
      * @param secondary the message signer to be used to generate the secondary (hybrid) signature
      * @return a holder containing the resulting signed hybrid certificate
      */
-    public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary) {
+    public X509CertificateHolder buildHybrid(ContentSigner primary, ContentSigner secondary) throws IOException {
         int secondarySigSize = secondary.getSignature().length;
         TBSCertificate tbs = prepareForHybrid(primary, secondarySigSize, secondary.getAlgorithmIdentifier());
         byte[] bytes = null;
-        try {
-            secondary.getOutputStream().write(tbs.toASN1Primitive().getEncoded());
-            byte[] signature = secondary.getSignature();
-            bytes = tbs.getEncoded();
-            System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        secondary.getOutputStream().write(tbs.toASN1Primitive().getEncoded());
+        byte[] signature = secondary.getSignature();
+        bytes = tbs.getEncoded();
+        System.arraycopy(signature, 0, bytes, bytes.length - secondarySigSize, secondarySigSize);
         return CertUtils.generateFullCert(primary, TBSCertificate.getInstance(bytes));
     }
 }
